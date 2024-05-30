@@ -1,0 +1,2 @@
+- provider.tf 를 common에 배치시키면 environments/production 에서 terraform apply 명령어로 했을 때 참고가 안되는 것 같다.
+  - 그래서 해당 파일을 environments/production 로 옮겼다
