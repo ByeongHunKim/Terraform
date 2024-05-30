@@ -10,5 +10,5 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-southeast-1"
+  region = var.vpc_region
 }
