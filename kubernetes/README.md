@@ -34,13 +34,13 @@ This Terraform configuration creates a network infrastructure in the AWS `ap-sou
 ### Security Groups
 - **bastion-sg**
   - **Description**: Security group for bastion host
-  - **Ingress**: SSH (Port 22) from `{ip}/32`
+  - **Ingress**: SSH (Port 22) from `bastion_cidr_block`
   - **Egress**: All traffic allowed
 
 ### Bastion Host
 - **AMI**: `{latest-ami}`
-- **Instance Type**: `t2.micro`
-- **Key Name**: `{common-pem}`
+- **Instance Type**: `bastion_instance_type`
+- **Key Name**: `bastion_key_name`
 - **Public IP**: Assigned
 - **Subnet**: `public-subnet-ap-southeast-1a`
 - **Security Group**: `bastion-sg`
