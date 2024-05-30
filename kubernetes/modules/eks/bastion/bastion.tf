@@ -20,8 +20,8 @@ data "aws_ami" "latest_amazon_ami" {
 
 resource "aws_instance" "bastion" {
   ami           = data.aws_ami.latest_amazon_ami.id
-  instance_type = ""
-  key_name      = ""
+  instance_type = var.bastion_instance_type
+  key_name      = var.bastion_key_name
 
   subnet_id         = var.public_subnet_id
   security_groups   = [var.security_group_id]
