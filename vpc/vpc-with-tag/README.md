@@ -1,6 +1,6 @@
 ## terraform init
 ```bash
-terrafor init                                                                                                                                1 ✘  system   dev/lazyants-airdrop-web ⭐  15:11:50  
+terrafor init                                                                                                                               
 
 Initializing the backend...
 
@@ -46,7 +46,7 @@ Q3: .terraform.lock.hcl 파일을 버전 관리에 포함시키는 것이 왜 �
 
 ## terraform plan
 ```bash
-terrafor plan                                                                                                                                 ✔  7s   system   dev/lazyants-airdrop-web ⭐  15:12:58  
+terrafor plan                                                                                                                             
 
 Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
