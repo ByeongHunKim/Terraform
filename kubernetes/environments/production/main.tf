@@ -28,10 +28,10 @@ module "eks" {
 }
 
 resource "aws_security_group_rule" "allow_bastion_to_eks" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  security_group_id        = module.eks.additional_security_group_ids[0]
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  security_group_id = module.eks.eks_cluster_security_group_id
   source_security_group_id = module.security-groups.bastion_sg_id
 }
