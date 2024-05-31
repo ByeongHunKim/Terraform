@@ -24,7 +24,7 @@ resource "aws_instance" "bastion" {
   key_name      = var.bastion_key_name
 
   subnet_id         = var.public_subnet_id
-  security_groups   = [var.security_group_id]
+  security_groups   = [var.bastion_security_group_id, var.eks_node_security_group_id]
   associate_public_ip_address = true
 
   tags = {

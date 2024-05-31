@@ -17,3 +17,13 @@ variable "bastion_cidr_block" {
   type        = string
   description = "CIDR block for SSH access to the Bastion host"
 }
+
+variable "cluster_name" {
+  description = "The name of the EKS cluster"
+  type        = string
+}
+
+variable "cluster_version" {
+  description = "The version of the EKS cluster"
+  type        = string
+}
