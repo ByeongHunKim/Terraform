@@ -1,3 +1,5 @@
 .terraform*
 *.tfstate*
 .idea
+kubernetes/environments/production/terraform.tfvars
+kubernetes/environments/development/terraform.tfvars
