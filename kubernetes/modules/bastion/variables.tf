@@ -3,7 +3,12 @@ variable "public_subnet_id" {
   type        = string
 }
 
-variable "security_group_id" {
+variable "bastion_security_group_id" {
+  description = "The ID of the security group to be attached to the Bastion host."
+  type        = string
+}
+
+variable "eks_node_security_group_id" {
   description = "The ID of the security group to be attached to the Bastion host."
   type        = string
 }

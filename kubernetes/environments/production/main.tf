@@ -10,9 +10,10 @@ module "security-groups" {
 }
 
 module "bastion" {
-  source = "../../modules/eks/bastion"
+  source = "../../modules/bastion"
   public_subnet_id = module.vpc.public_subnet_ids[0]
-  security_group_id = module.security-groups.bastion_sg_id
+  bastion_security_group_id = module.security-groups.bastion_sg_id
+  eks_node_security_group_id = module.security-groups.eks_node_sg_id
   bastion_instance_type = var.bastion_instance_type
   bastion_key_name = var.bastion_key_name
 }
