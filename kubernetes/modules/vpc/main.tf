@@ -19,24 +19,24 @@ resource "aws_internet_gateway" "igw" {
 
 # 퍼블릭 서브넷 생성
 resource "aws_subnet" "public" {
-  count = 3
+  count = 2
   vpc_id = aws_vpc.main.id
-  cidr_block = ["10.0.64.0/20", "10.0.80.0/20", "10.0.96.0/20"][count.index]
+  cidr_block = ["10.0.64.0/20", "10.0.80.0/20"][count.index]
   availability_zone = element(var.availability_zones, count.index)
   map_public_ip_on_launch = true
   tags = {
-    Name = "public-subnet-${element(var.availability_zones, count.index)}"
+    "kubernetes.io/role/elb" = 1
   }
 }
 
 # 프라이빗 서브넷 생성
 resource "aws_subnet" "private" {
-  count = 3
+  count = 2
   vpc_id = aws_vpc.main.id
-  cidr_block = ["10.0.0.0/20", "10.0.16.0/20", "10.0.32.0/20"][count.index]
+  cidr_block = ["10.0.0.0/20", "10.0.16.0/20"][count.index]
   availability_zone = element(var.availability_zones, count.index)
   tags = {
-    Name = "private-subnet-${element(var.availability_zones, count.index)}"
+    "kubernetes.io/role/internal-elb" = 1
   }
 }
 
