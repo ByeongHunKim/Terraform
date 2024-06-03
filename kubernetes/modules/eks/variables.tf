@@ -17,8 +17,3 @@ variable "subnet_ids" {
   description = "The subnet IDs for the EKS cluster"
   type = list(string)
 }
-
-variable "bastion_key_name" {
-  description = "Key name for SSH access to the nodes"
-  type = string
-}
