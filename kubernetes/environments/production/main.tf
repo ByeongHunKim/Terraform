@@ -24,7 +24,6 @@ module "eks" {
   cluster_version = var.cluster_version
   vpc_id = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnet_ids
-  additional_security_group_ids = [module.security-groups.additional_sg_id]
 }
 
 resource "aws_security_group_rule" "allow_bastion_to_eks" {
