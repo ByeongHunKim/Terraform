@@ -10,6 +10,10 @@ locals {
   owner       = "meiko"                  # Owner/Team name
   region      = "ap-northeast-2"         # AWS region
 
+  # Terraform Cloud Settings
+  tfc_organization = "meiko_Org"
+  tfc_workspace    = "Meiko"
+
   # Cost Optimization Settings for Development
   enable_nat_gateway = false             # Disable NAT Gateway to save costs in dev
 
@@ -33,6 +37,25 @@ locals {
     Region      = local.region
     CostCenter  = "${local.project}-${local.environment}"
   }
+}
+
+# ====================================================================
+# Terraform Cloud OIDC Module
+# - Creates OIDC provider and role for Terraform Cloud Dynamic Provider
+# ====================================================================
+module "terraform_cloud_oidc" {
+  source = "../modules/terraform-cloud-oidc"
+
+  # Terraform Cloud Settings
+  terraform_cloud_organization = local.tfc_organization
+  workspace_name               = local.tfc_workspace
+
+  # IAM Role Configuration
+  role_name = "${local.project}-${local.environment}-tfc-role"
+
+  # Naming and Tagging
+  name_prefix = "${local.project}-${local.environment}"
+  tags        = local.common_tags
 }
 
 # ====================================================================

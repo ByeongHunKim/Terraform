@@ -39,3 +39,19 @@ variable "enable_nat_gateway_override" {
   type        = bool
   default     = null
 }
+
+# ====================================================================
+# Terraform Cloud Override Variables (optional)
+# ====================================================================
+
+variable "tfc_organization_override" {
+  description = "Override Terraform Cloud organization (optional)"
+  type        = string
+  default     = null
+}
+
+variable "tfc_workspace_override" {
+  description = "Override Terraform Cloud workspace name (optional)"
+  type        = string
+  default     = null
+}
