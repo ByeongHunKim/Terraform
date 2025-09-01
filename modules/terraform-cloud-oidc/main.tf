@@ -16,7 +16,6 @@ resource "aws_iam_openid_connect_provider" "terraform_cloud" {
 
 # ====================================================================
 # IAM Trust Policy Document
-# - Defines trust relationship for Terraform Cloud workspace
 # ====================================================================
 data "aws_iam_policy_document" "terraform_cloud_trust" {
   statement {
@@ -35,10 +34,10 @@ data "aws_iam_policy_document" "terraform_cloud_trust" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "${replace(var.oidc_url, "https://", "")}:sub"
       values = [
-        "organization:${var.terraform_cloud_organization}:project:${var.terraform_cloud_project}:workspace:${var.workspace_name}:run_phase:*"
+        "organization:${var.terraform_cloud_organization}:project:*:workspace:${var.workspace_name}:run_phase:*"
       ]
     }
   }

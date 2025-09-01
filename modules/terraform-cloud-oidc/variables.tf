@@ -7,9 +7,9 @@ variable "terraform_cloud_organization" {
 }
 
 variable "terraform_cloud_project" {
-  description = "Terraform Cloud project name"
+  description = "Terraform Cloud project name (wildcarded in trust policy)"
   type        = string
-  default     = "default"
+  default     = "*"
 }
 
 variable "workspace_name" {
