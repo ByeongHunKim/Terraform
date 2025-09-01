@@ -11,7 +11,7 @@ locals {
   region      = "ap-northeast-2"         # AWS region
 
   # Terraform Cloud Settings
-  tfc_organization = "meiko_Org"
+  tfc_organization = "Meiko_Org"
   tfc_workspace    = "Meiko"
 
   # Cost Optimization Settings for Development
