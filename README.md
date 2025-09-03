@@ -4,26 +4,34 @@
 
 ```bash
 terraform-aws-infrastructure/
+├── .github/                    # GitHub Actions workflows
+│   └── workflows/
+│       └── aws-test.yml        # AWS OIDC connection test
 ├── dev/                        # Development Environment
 │   ├── .terraform.lock.hcl     # Provider version lock
 │   ├── backend.tf              # Terraform Cloud workspace
 │   ├── main.tf                 # Module calls & local config
 │   ├── variables.tf            # Environment variables
-│   ├── outputs.tf              # Outputs
+│   ├── outputs.tf              # Environment outputs
 │   └── terraform.tfvars        # Values (gitignored)
-├── stg/                        # Staging (planned)
-├── prod/                       # Production (planned)
-├── modules/                    # Reusable modules
+├── stg/                        # Staging Environment (planned)
+├── prod/                       # Production Environment (planned)
+├── modules/                    # Reusable Terraform modules
 │   ├── vpc/                    # VPC with subnets, IGW, NAT
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── terraform-cloud-oidc/   # OIDC authentication
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-├── .gitignore
-└── README.md
+│   │   ├── main.tf             # VPC resources
+│   │   ├── variables.tf        # VPC input variables
+│   │   └── outputs.tf          # VPC outputs
+│   ├── terraform-cloud-oidc/   # Terraform Cloud OIDC authentication
+│   │   ├── main.tf             # OIDC provider & IAM role
+│   │   ├── variables.tf        # TFC-specific variables
+│   │   └── outputs.tf          # TFC OIDC outputs
+│   ├── github-actions-oidc/    # GitHub Actions OIDC authentication
+│   │   ├── main.tf             # GitHub OIDC provider & IAM role
+│   │   ├── variables.tf        # GitHub-specific variables
+│   │   └── outputs.tf          # GitHub OIDC outputs
+│   └── ec2/                    # EC2 instances (planned)
+├── .gitignore                  
+└── README.md                   
 ```
 
 ## Authentication Flow
