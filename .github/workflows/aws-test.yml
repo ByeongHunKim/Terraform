@@ -1,79 +1,65 @@
-name: AWS OIDC Connection Test
+name: OIDC Test
 
 on:
+  push:
+  pull_request:
   workflow_dispatch:
 
-  push:
-    branches: [main]
-
-  pull_request:
-    branches: [main]
-
 permissions:
-  id-token: write   # OIDC token creation
-  contents: read    # repo read
+  id-token: write
 
 jobs:
-  test-aws-connection:
+  access-s3:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Debug Variables and Context
+        run: |
+          echo "=== Repository Variables ==="
+          echo "AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}"
+          echo ""
+          echo "=== GitHub Context ==="
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Head Ref: ${{ github.head_ref }}"
+            echo "Base Ref: ${{ github.base_ref }}"
+          fi
+          echo ""
+          echo "=== Expected Subject Patterns ==="
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR Subject: repo:${{ github.repository }}:pull_request"
+          else
+            echo "Push Subject: repo:${{ github.repository }}:ref:${{ github.ref }}"
+          fi
+          echo "Wildcard Subject: repo:${{ github.repository }}:*"
 
-      - name: Configure AWS Credentials using OIDC
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          role-session-name: github-actions-oidc-test
           aws-region: ap-northeast-2
-          # role-duration-seconds: 3600  # default 1h
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
 
-      - name: Verify AWS Identity
+      - name: Test AWS Identity
         run: |
-          echo "🔍 === AWS Identity Information ==="
+          echo "=== AWS Identity ==="
           aws sts get-caller-identity
-          echo ""
-          echo "📋 Current AWS Account: $(aws sts get-caller-identity --query Account --output text)"
-          echo "👤 Assumed Role: $(aws sts get-caller-identity --query Arn --output text)"
 
-      - name: Test S3 Access
+      - name: List S3 buckets
         run: |
-          echo "🪣 === S3 Buckets ==="
-          aws s3 ls || echo "No S3 buckets found or no access"
-          echo ""
+          echo "=== S3 Buckets ==="
+          aws s3 ls || echo "No S3 buckets found"
 
       - name: Test VPC Access
         run: |
-          echo "🌐 === VPC Information ==="
-          aws ec2 describe-vpcs \
-            --query 'Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,State:State}' \
-            --output table || echo "No VPC access"
-          echo ""
+          echo "=== VPC Information ==="
+          aws ec2 describe-vpcs --query 'Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,State:State}' --output table || echo "No VPC access"
 
-      - name: Test EC2 Access
+      - name: Success Summary
         run: |
-          echo "💻 === EC2 Instances ==="
-          aws ec2 describe-instances \
-            --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Type:InstanceType}' \
-            --output table || echo "No EC2 instances found"
-          echo ""
-
-      - name: Test IAM Access
-        run: |
-          echo "🔐 === IAM Role Information ==="
-          aws iam get-role --role-name terraform-study-dev-github-actions-role \
-            --query 'Role.{RoleName:RoleName,CreateDate:CreateDate,MaxSessionDuration:MaxSessionDuration}' \
-            --output table
-          echo ""
-          
-          echo "📝 === Attached Policies ==="
-          aws iam list-attached-role-policies \
-            --role-name terraform-study-dev-github-actions-role \
-            --output table
-
-      - name: Success Message
-        run: |
-          echo "🎉 === GitHub Actions OIDC Connection Successful! ==="
-          echo "✅ Successfully authenticated with AWS using OIDC"
-          echo "✅ Role: terraform-study-dev-github-actions-role"
+          echo "🎉 === OIDC Authentication Successful! ==="
+          echo "✅ Event: ${{ github.event_name }}"
+          echo "✅ Repository: ${{ github.repository }}"
+          echo "✅ AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+          echo "✅ Assumed Role: $(aws sts get-caller-identity --query Arn --output text)"
