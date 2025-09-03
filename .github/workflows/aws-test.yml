@@ -1,0 +1,65 @@
+name: OIDC Test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+
+jobs:
+  access-s3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Variables and Context
+        run: |
+          echo "=== Repository Variables ==="
+          echo "AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}"
+          echo ""
+          echo "=== GitHub Context ==="
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Head Ref: ${{ github.head_ref }}"
+            echo "Base Ref: ${{ github.base_ref }}"
+          fi
+          echo ""
+          echo "=== Expected Subject Patterns ==="
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR Subject: repo:${{ github.repository }}:pull_request"
+          else
+            echo "Push Subject: repo:${{ github.repository }}:ref:${{ github.ref }}"
+          fi
+          echo "Wildcard Subject: repo:${{ github.repository }}:*"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-northeast-2
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+
+      - name: Test AWS Identity
+        run: |
+          echo "=== AWS Identity ==="
+          aws sts get-caller-identity
+
+      - name: List S3 buckets
+        run: |
+          echo "=== S3 Buckets ==="
+          aws s3 ls || echo "No S3 buckets found"
+
+      - name: Test VPC Access
+        run: |
+          echo "=== VPC Information ==="
+          aws ec2 describe-vpcs --query 'Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,State:State}' --output table || echo "No VPC access"
+
+      - name: Success Summary
+        run: |
+          echo "🎉 === OIDC Authentication Successful! ==="
+          echo "✅ Event: ${{ github.event_name }}"
+          echo "✅ Repository: ${{ github.repository }}"
+          echo "✅ AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+          echo "✅ Assumed Role: $(aws sts get-caller-identity --query Arn --output text)"
