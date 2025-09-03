@@ -37,7 +37,10 @@ data "aws_iam_policy_document" "github_actions_trust" {
       test     = "StringLike"
       variable = "${replace(var.oidc_url, "https://", "")}:sub"
       values = [
-        "repo:${var.github_organization}:${var.repository_name}:*"
+        "repo:${var.github_organization}/${var.repository_name}:*",
+        "repo:${var.github_organization}/${var.repository_name}:ref:refs/heads/*",
+        "repo:${var.github_organization}/${var.repository_name}:ref:refs/pull/*",
+        "repo:${var.github_organization}/${var.repository_name}:pull_request"
       ]
     }
   }
