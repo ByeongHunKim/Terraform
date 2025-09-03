@@ -14,6 +14,10 @@ locals {
   tfc_organization = "Meiko_Org"
   tfc_workspace    = "Meiko"
 
+  # GitHub Settings
+  github_organization = "ByeongHunKim"  # GitHub username or organization
+  github_repository   = "Terraform"        # GitHub repository name
+
   # Cost Optimization Settings for Development
   enable_nat_gateway = false             # Disable NAT Gateway to save costs in dev
 
@@ -52,6 +56,31 @@ module "terraform_cloud_oidc" {
 
   # IAM Role Configuration
   role_name = "${local.project}-${local.environment}-tfc-role"
+
+  # Naming and Tagging
+  name_prefix = "${local.project}-${local.environment}"
+  tags        = local.common_tags
+}
+
+# ====================================================================
+# GitHub Actions OIDC Module
+# - Creates OIDC provider and role for GitHub Actions
+# - Same structure as terraform_cloud_oidc with AdministratorAccess
+# ====================================================================
+module "github_actions_oidc" {
+  source = "../modules/github-actions-oidc"
+
+  # GitHub Settings
+  github_organization = local.github_organization
+  repository_name     = local.github_repository
+
+  # IAM Role Configuration
+  role_name = "${local.project}-${local.environment}-github-actions-role"
+
+  # IAM Policies - Administrator Access (same as Terraform Cloud)
+  policy_arns = [
+    "arn:aws:iam::aws:policy/AdministratorAccess"
+  ]
 
   # Naming and Tagging
   name_prefix = "${local.project}-${local.environment}"

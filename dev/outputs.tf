@@ -2,6 +2,35 @@
 # Development Environment Outputs
 # ====================================================================
 
+# ====================================================================
+# GitHub Actions OIDC Outputs
+# ====================================================================
+output "github_actions_oidc_provider_arn" {
+  description = "ARN of the GitHub Actions OIDC provider"
+  value       = module.github_actions_oidc.oidc_provider_arn
+}
+
+output "github_actions_role_arn" {
+  description = "ARN of the GitHub Actions IAM role - Use this in GitHub Repository Variables"
+  value       = module.github_actions_oidc.role_arn
+}
+
+output "github_actions_role_name" {
+  description = "Name of the GitHub Actions IAM role"
+  value       = module.github_actions_oidc.role_name
+}
+
+output "github_actions_oidc_provider_url" {
+  description = "URL of the GitHub Actions OIDC provider"
+  value       = module.github_actions_oidc.oidc_provider_url
+}
+
+output "github_actions_trust_policy" {
+  description = "Trust policy JSON for GitHub Actions role"
+  value       = module.github_actions_oidc.trust_policy
+  sensitive   = true
+}
+
 # Terraform Cloud OIDC Outputs
 output "terraform_cloud_oidc_provider_arn" {
   description = "ARN of the Terraform Cloud OIDC provider"
