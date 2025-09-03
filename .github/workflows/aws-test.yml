@@ -1,0 +1,79 @@
+name: AWS OIDC Connection Test
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write   # OIDC token creation
+  contents: read    # repo read
+
+jobs:
+  test-aws-connection:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-session-name: github-actions-oidc-test
+          aws-region: ap-northeast-2
+          # role-duration-seconds: 3600  # default 1h
+
+      - name: Verify AWS Identity
+        run: |
+          echo "🔍 === AWS Identity Information ==="
+          aws sts get-caller-identity
+          echo ""
+          echo "📋 Current AWS Account: $(aws sts get-caller-identity --query Account --output text)"
+          echo "👤 Assumed Role: $(aws sts get-caller-identity --query Arn --output text)"
+
+      - name: Test S3 Access
+        run: |
+          echo "🪣 === S3 Buckets ==="
+          aws s3 ls || echo "No S3 buckets found or no access"
+          echo ""
+
+      - name: Test VPC Access
+        run: |
+          echo "🌐 === VPC Information ==="
+          aws ec2 describe-vpcs \
+            --query 'Vpcs[].{VpcId:VpcId,CidrBlock:CidrBlock,State:State}' \
+            --output table || echo "No VPC access"
+          echo ""
+
+      - name: Test EC2 Access
+        run: |
+          echo "💻 === EC2 Instances ==="
+          aws ec2 describe-instances \
+            --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Type:InstanceType}' \
+            --output table || echo "No EC2 instances found"
+          echo ""
+
+      - name: Test IAM Access
+        run: |
+          echo "🔐 === IAM Role Information ==="
+          aws iam get-role --role-name terraform-study-dev-github-actions-role \
+            --query 'Role.{RoleName:RoleName,CreateDate:CreateDate,MaxSessionDuration:MaxSessionDuration}' \
+            --output table
+          echo ""
+          
+          echo "📝 === Attached Policies ==="
+          aws iam list-attached-role-policies \
+            --role-name terraform-study-dev-github-actions-role \
+            --output table
+
+      - name: Success Message
+        run: |
+          echo "🎉 === GitHub Actions OIDC Connection Successful! ==="
+          echo "✅ Successfully authenticated with AWS using OIDC"
+          echo "✅ Role: terraform-study-dev-github-actions-role"
