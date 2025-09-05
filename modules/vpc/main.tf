@@ -166,3 +166,56 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[0].id
 }
+
+# ====================================================================
+# Database Subnets - Isolated Database Layer
+# ====================================================================
+resource "aws_subnet" "database" {
+  count = length(var.database_subnets)
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.database_subnets[count.index]
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-database-${count.index + 1}"
+    Type = "Database"
+  })
+}
+
+# ====================================================================
+# Database Route Table
+# ====================================================================
+resource "aws_route_table" "database" {
+  count = length(var.database_subnets) > 0 ? 1 : 0
+
+  vpc_id = aws_vpc.main.id
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-database-rt"
+  })
+}
+
+# ====================================================================
+# Database Route Table Association
+# ====================================================================
+resource "aws_route_table_association" "database" {
+  count = length(var.database_subnets)
+
+  subnet_id      = aws_subnet.database[count.index].id
+  route_table_id = aws_route_table.database[0].id
+}
+
+# ====================================================================
+# RDS Subnet Group
+# ====================================================================
+resource "aws_db_subnet_group" "database" {
+  count = var.create_database_subnet_group && length(var.database_subnets) > 0 ? 1 : 0
+
+  name       = var.database_subnet_group_name != "" ? var.database_subnet_group_name : "${var.name_prefix}-db-subnet-group"
+  subnet_ids = aws_subnet.database[*].id
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-db-subnet-group"
+  })
+}

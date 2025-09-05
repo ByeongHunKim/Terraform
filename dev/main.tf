@@ -32,6 +32,11 @@ locals {
     "10.0.20.0/24"
   ]
 
+  database_cidrs = [                     # Database subnet CIDR blocks
+    "10.0.100.0/27",
+    "10.0.200.0/27"
+  ]
+
   # Common Tags - Applied to all resources
   common_tags = {
     Environment = local.environment
@@ -100,7 +105,11 @@ module "vpc" {
   vpc_cidr           = local.vpc_cidr_block
   public_subnets     = local.public_cidrs
   private_subnets    = local.private_cidrs
+  database_subnets   = local.database_cidrs
   enable_nat_gateway = local.enable_nat_gateway
+
+  create_database_subnet_group = true
+  database_subnet_group_name   = "${local.project}-${local.environment}-db-subnet-group"
 
   # Naming and Tagging
   name_prefix = "${local.project}-${local.environment}"

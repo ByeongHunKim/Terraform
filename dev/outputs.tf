@@ -67,3 +67,14 @@ output "private_subnet_ids" {
   description = "IDs of the private subnets"
   value       = module.vpc.private_subnet_ids
 }
+
+# Database Outputs
+output "database_subnet_ids" {
+  description = "IDs of the database subnets"
+  value       = module.vpc.database_subnet_ids
+}
+
+output "database_subnet_group_name" {
+  description = "Name of the RDS subnet group"
+  value       = module.vpc.database_subnet_group_name
+}

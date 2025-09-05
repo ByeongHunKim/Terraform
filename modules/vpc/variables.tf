@@ -44,3 +44,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "database_subnets" {
+  description = "A list of database subnet CIDR blocks"
+  type        = list(string)
+  default     = []
+}
+
+variable "create_database_subnet_group" {
+  description = "Whether to create database subnet group"
+  type        = bool
+  default     = true
+}
+
+variable "database_subnet_group_name" {
+  description = "Name of the database subnet group"
+  type        = string
+  default     = ""
+}
