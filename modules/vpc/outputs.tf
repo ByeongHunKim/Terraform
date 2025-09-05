@@ -37,3 +37,18 @@ output "private_route_table_id" {
   description = "priv rt id"
   value       = length(var.private_subnets) > 0 ? aws_route_table.private[0].id : null
 }
+
+output "database_subnet_ids" {
+  description = "Database subnet IDs"
+  value       = aws_subnet.database[*].id
+}
+
+output "database_route_table_id" {
+  description = "Database route table ID"
+  value       = length(var.database_subnets) > 0 ? aws_route_table.database[0].id : null
+}
+
+output "database_subnet_group_name" {
+  description = "Database subnet group name"
+  value       = var.create_database_subnet_group && length(var.database_subnets) > 0 ? aws_db_subnet_group.database[0].name : null
+}
