@@ -37,6 +37,11 @@ locals {
     "10.0.200.0/27"
   ]
 
+  # SSL/TLS Certificate Configuration
+  primary_domain = "meiko.co.kr"
+  create_wildcard = true
+  route53_zone_id = var.ROUTE53_PUB_ZONE_ID
+
   # Common Tags - Applied to all resources
   common_tags = {
     Environment = local.environment
@@ -114,4 +119,37 @@ module "vpc" {
   # Naming and Tagging
   name_prefix = "${local.project}-${local.environment}"
   tags        = local.common_tags
+}
+
+# ====================================================================
+# ACM Module - SSL/TLS Certificate Management for meiko.co.kr
+# - Creates SSL/TLS certificates for meiko.co.kr domain
+# - Automatic DNS validation with existing Route53 hosted zone
+# - Supports both single domain and wildcard certificates
+# ====================================================================
+module "acm" {
+  source = "../modules/acm"
+
+  # Domain Configuration
+  domain_name = local.primary_domain
+
+  create_wildcard_certificate = local.create_wildcard
+  wildcard_domain            = "*.${local.primary_domain}"
+
+  # DNS Validation Configuration
+  validation_method        = "DNS"
+  create_route53_records   = true
+  route53_zone_id         = local.route53_zone_id
+  wait_for_validation     = true
+
+  # Certificate Security Configuration
+  key_algorithm = "RSA_2048"                                # RSA 2048-bit key
+  certificate_transparency_logging_preference = "ENABLED"   # CT logging enable
+
+  name_prefix = "${local.project}-${local.environment}"
+  tags = merge(local.common_tags, {
+    Purpose = "SSL/TLS Certificate"
+    Domain  = local.primary_domain
+    Type    = "Production-Ready"
+  })
 }
