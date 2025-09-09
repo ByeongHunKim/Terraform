@@ -29,6 +29,14 @@ terraform-aws-infrastructure/
 │   │   ├── main.tf             # GitHub OIDC provider & IAM role
 │   │   ├── variables.tf        # GitHub-specific variables
 │   │   └── outputs.tf          # GitHub OIDC outputs
+│   ├── acm/                    # Certificate Manager
+│   │   ├── main.tf              
+│   │   ├── variables.tf        
+│   │   └── outputs.tf
+│   ├── ecs/                    # ECS Cluster
+│   │   ├── main.tf              
+│   │   ├── variables.tf        
+│   │   └── outputs.tf              
 │   └── ec2/                    # EC2 instances (planned)
 ├── .gitignore                  
 └── README.md                   

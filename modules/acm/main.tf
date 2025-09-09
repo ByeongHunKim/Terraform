@@ -13,7 +13,6 @@ resource "aws_acm_certificate" "main" {
   domain_name       = var.domain_name
   validation_method = var.validation_method
 
-  # 🌟 와일드카드 도메인을 SAN으로 포함 (선택적)
   subject_alternative_names = var.create_wildcard_certificate ? concat(
     var.subject_alternative_names,
     ["*.${var.domain_name}"]
@@ -39,7 +38,7 @@ resource "aws_acm_certificate" "main" {
 }
 
 # ====================================================================
-# Route53 Validation Records - Main Certificate (모든 도메인 커버)
+# Route53 Validation Records - Main Certificate
 # ====================================================================
 resource "aws_route53_record" "main_validation" {
   for_each = var.validation_method == "DNS" && var.create_route53_records ? {
@@ -61,7 +60,7 @@ resource "aws_route53_record" "main_validation" {
 }
 
 # ====================================================================
-# Certificate Validation - Main Certificate (모든 도메인 검증)
+# Certificate Validation - Main Certificate
 # ====================================================================
 resource "aws_acm_certificate_validation" "main" {
   count = var.wait_for_validation && var.validation_method == "DNS" ? 1 : 0

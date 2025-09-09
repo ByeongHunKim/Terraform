@@ -153,3 +153,46 @@ module "acm" {
     Type    = "Production-Ready"
   })
 }
+
+# ====================================================================
+# ECS Module - Container Orchestration Platform
+# - Creates ECS cluster with Fargate support
+# - Cost-optimized: cluster only, no running tasks
+# - CloudWatch logging configured
+# ====================================================================
+module "ecs" {
+  source = "../modules/ecs"
+
+  # Cluster Configuration
+  cluster_name = "${local.project}-${local.environment}-cluster"
+  vpc_id       = module.vpc.vpc_id
+  environment  = local.environment
+
+  # Capacity Provider Strategy - Cost Optimized
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+  default_capacity_provider_strategy = [
+    {
+      capacity_provider = "FARGATE_SPOT"  # Cheaper option first
+      weight           = 3
+      base            = 0
+    },
+    {
+      capacity_provider = "FARGATE"       # Standard option for critical tasks
+      weight           = 1
+      base            = 1
+    }
+  ]
+
+  # Cost Optimization Settings
+  enable_container_insights           = false  # Disable to save costs
+  log_retention_in_days              = 7      # Short retention period
+  create_service_discovery_namespace = false  # Not needed for cluster-only setup
+  create_execution_role              = true   # Keep for future tasks
+
+  # Naming and Tagging
+  tags = merge(local.common_tags, {
+    Purpose = "Container Orchestration"
+    Phase   = "1 - Cluster Only"
+    NextStep = "Task Definitions and Services"
+  })
+}
