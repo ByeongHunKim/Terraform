@@ -60,5 +60,4 @@ variable "ROUTE53_PUB_ZONE_ID" {
   description = "Route53 hosted zone ID for DNS validation (required if create_route53_records is true)"
   type      = string
   nullable  = false
-  sensitive = true
 }

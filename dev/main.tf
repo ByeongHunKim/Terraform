@@ -196,3 +196,130 @@ module "ecs" {
     NextStep = "Task Definitions and Services"
   })
 }
+
+# ====================================================================
+# ECS Service Module - Multiple Services Configuration
+# - Creates Task Definitions, Services, ALBs, and Security Groups
+# - Example: Nginx and API services
+# ====================================================================
+module "ecs_services" {
+  source = "../modules/ecs-service"
+
+  # Infrastructure Configuration
+  cluster_name         = module.ecs.cluster_name
+  vpc_id              = module.vpc.vpc_id
+  public_subnet_ids   = module.vpc.public_subnet_ids
+  private_subnet_ids  = module.vpc.private_subnet_ids
+  execution_role_arn  = module.ecs.execution_role_arn
+
+  # Global Configuration
+  environment         = local.environment
+  name_prefix         = "${local.project}-${local.environment}"
+  route53_zone_id     = local.route53_zone_id
+  default_certificate_arn = module.acm.certificate_arn
+
+  # Services Configuration - 여러 서비스를 for_each로 관리
+  services = {
+    # ====================================================================
+    # Nginx Web Server Service
+    # ====================================================================
+    "nginx-web" = {
+      # Task Definition Configuration
+      family         = "${local.project}-${local.environment}-nginx"
+      cpu            = 256
+      memory         = 512
+      container_port = 80
+
+      # Container Configuration
+      image = "nginx:alpine"
+      environment_variables = {
+        NGINX_PORT = "80"
+        ENV        = local.environment
+      }
+
+      # Service Configuration
+      desired_count = 2
+      enable_service = true
+
+      # Load Balancer Configuration
+      enable_load_balancer = true
+      health_check_path    = "/"
+      health_check_matcher = "200"
+
+      # Domain Configuration
+      domain_name     = "nginx.meiko.co.kr"
+      certificate_arn = module.acm.certificate_arn
+
+      # Auto Scaling Configuration
+      enable_autoscaling = true
+      min_capacity      = 1
+      max_capacity      = 5
+      target_cpu_utilization = 70
+
+      # Logging Configuration
+      log_retention_days = 7
+    },
+
+    # ====================================================================
+    # Simple API Service
+    # ====================================================================
+    "simple-api" = {
+      # Task Definition Configuration
+      family         = "${local.project}-${local.environment}-api"
+      cpu            = 512
+      memory         = 1024
+      container_port = 3000
+
+      # Container Configuration - Simple Node.js API
+      image = "node:18-alpine"
+      command = [
+        "sh", "-c",
+        "echo 'const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from API!\", env: process.env.NODE_ENV})); app.get(\"/health\", (req, res) => res.json({status: \"OK\", timestamp: new Date().toISOString()})); app.listen(3000, () => console.log(\"API running on port 3000\"));' > app.js && npm init -y && npm install express && node app.js"
+      ]
+
+      environment_variables = {
+        NODE_ENV = local.environment
+        PORT     = "3000"
+        API_NAME = "terraform-study-api"
+      }
+
+      # Service Configuration
+      desired_count = 1
+      enable_service = true
+
+      # Load Balancer Configuration
+      enable_load_balancer = true
+      health_check_path    = "/health"
+      health_check_matcher = "200"
+
+      # Domain Configuration
+      domain_name     = "api.meiko.co.kr"
+      certificate_arn = module.acm.certificate_arn
+
+      # Auto Scaling Configuration
+      enable_autoscaling = false  # API는 작은 규모로 시작
+
+      # Security Configuration
+      security_group_rules = {
+        # API 내부 통신을 위한 추가 규칙 (예시)
+        internal_api = {
+          type      = "ingress"
+          from_port = 3000
+          to_port   = 3000
+          protocol  = "tcp"
+          cidr_blocks = [local.vpc_cidr_block]
+        }
+      }
+
+      # Logging Configuration
+      log_retention_days = 14  # API는 좀 더 긴 로그 보관
+    }
+  }
+
+  # Common Tags
+  tags = merge(local.common_tags, {
+    Module  = "ecs-services"
+    Purpose = "Container Services"
+    Phase   = "2 - Task Definitions and Services"
+  })
+}
