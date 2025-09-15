@@ -238,7 +238,7 @@ module "ecs_services" {
       }
 
       # Service Configuration
-      desired_count = 2
+      desired_count = 1
       enable_service = true
 
       # Load Balancer Configuration
