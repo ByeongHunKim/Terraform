@@ -209,7 +209,7 @@ module "ecs_services" {
   cluster_name         = module.ecs.cluster_name
   vpc_id              = module.vpc.vpc_id
   public_subnet_ids   = module.vpc.public_subnet_ids
-  private_subnet_ids  = module.vpc.private_subnet_ids
+  private_subnet_ids  = module.vpc.public_subnet_ids // private_subnet_ids
   execution_role_arn  = module.ecs.execution_role_arn
 
   # Global Configuration

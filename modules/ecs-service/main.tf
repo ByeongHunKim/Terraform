@@ -395,8 +395,8 @@ resource "aws_ecs_service" "main" {
 
   network_configuration {
     security_groups  = [aws_security_group.ecs[each.key].id]
-    subnets         = var.private_subnet_ids
-    assign_public_ip = each.value.assign_public_ip
+    subnets         = var.public_subnet_ids // temp : private_subnet_ids
+    assign_public_ip = true //temp : each.value.assign_public_ip
   }
 
   # Load balancer configuration
