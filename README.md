@@ -36,7 +36,11 @@ terraform-aws-infrastructure/
 │   ├── ecs/                    # ECS Cluster
 │   │   ├── main.tf              
 │   │   ├── variables.tf        
-│   │   └── outputs.tf              
+│   │   └── outputs.tf
+│   ├── ecs-service/            # ECS Services
+│   │   ├── main.tf              
+│   │   ├── variables.tf        
+│   │   └── outputs.tf                   
 │   └── ec2/                    # EC2 instances (planned)
 ├── .gitignore                  
 └── README.md                   
