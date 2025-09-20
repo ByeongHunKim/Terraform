@@ -390,6 +390,10 @@ resource "aws_ecs_service" "main" {
   launch_type     = "FARGATE"
   platform_version = var.platform_version
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   deployment_minimum_healthy_percent = each.value.deployment_minimum_healthy_percent
   deployment_maximum_percent        = each.value.deployment_maximum_percent
 
