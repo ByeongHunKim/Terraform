@@ -1,42 +1,43 @@
 # ====================================================================
 # Terraform Variables Example File
+# Copy this file to terraform.tfvars and modify with your actual values
 # ====================================================================
 
 # ====================================================================
 # Basic Environment Settings
 # ====================================================================
-environment = "dev"                    # dev, stg, prod
-project     = "your-project-name"      # 프로젝트 이름
-owner       = "your-name"              # 소유자 이름
-aws_region  = "ap-northeast-2"         # AWS 리전
+environment = "dev"                    # Environment: dev, stg, prod
+project     = "your-project-name"      # Project name for resource naming
+owner       = "your-name"              # Resource owner name
+aws_region  = "ap-northeast-2"         # AWS region
 
 # ====================================================================
 # External Service Integration
 # ====================================================================
 # Terraform Cloud Settings
-tfc_organization = "Your-TFC-Org"      # Terraform Cloud 조직명
-tfc_workspace    = "Your-Workspace"    # Terraform Cloud 워크스페이스명
+tfc_organization = "Your-TFC-Org"      # Terraform Cloud organization name
+tfc_workspace    = "Your-Workspace"    # Terraform Cloud workspace name
 
 # GitHub Settings
-github_organization = "your-github-org"    # GitHub 조직명 또는 사용자명
-github_repository   = "your-repo-name"     # GitHub 저장소명
+github_organization = "your-github-org"    # GitHub organization or username
+github_repository   = "your-repo-name"     # GitHub repository name
 
 # ====================================================================
 # Network Configuration
 # ====================================================================
-vpc_cidr_block = "10.0.0.0/16"         # VPC CIDR 블록
+vpc_cidr_block = "10.0.0.0/16"         # VPC CIDR block
 
-public_cidrs = [                        # Public 서브넷 CIDR
+public_cidrs = [                        # Public subnet CIDRs
   "10.0.1.0/24",
   "10.0.2.0/24"
 ]
 
-private_cidrs = [                       # Private 서브넷 CIDR
+private_cidrs = [                       # Private subnet CIDRs
   "10.0.10.0/24",
   "10.0.20.0/24"
 ]
 
-database_cidrs = [                      # Database 서브넷 CIDR
+database_cidrs = [                      # Database subnet CIDRs
   "10.0.100.0/27",
   "10.0.200.0/27"
 ]
@@ -44,49 +45,170 @@ database_cidrs = [                      # Database 서브넷 CIDR
 # ====================================================================
 # Cost Optimization Settings
 # ====================================================================
-enable_nat_gateway = false             # true: 프로덕션용, false: 개발용 (비용절약)
+enable_nat_gateway = false             # true: production, false: dev (cost savings)
 
 # ====================================================================
 # Domain and SSL Configuration
 # ====================================================================
-primary_domain  = "your-domain.com"    # 기본 도메인
-create_wildcard = true                  # 와일드카드 인증서 생성 여부
+primary_domain  = "your-domain.com"    # Primary domain name
+create_wildcard = true                  # Create wildcard certificate
 
 # ====================================================================
-# ECS Service Configuration
+# Multiple ECS Services Configuration
 # ====================================================================
-nginx_service = {
-  # Container Configuration
-  image          = "nginx:alpine"       # 컨테이너 이미지
-  cpu            = 256                  # CPU 단위 (256, 512, 1024, 2048, 4096)
-  memory         = 512                  # 메모리 MB
-  container_port = 80                   # 컨테이너 포트
+services = {
+  # ====================================================================
+  # Nginx Web Server Example
+  # ====================================================================
+  "nginx-web" = {
+    # Task Definition Configuration
+    family         = "your-project-dev-nginx"   # Task definition family name
+    cpu            = 256                         # CPU units (256, 512, 1024, 2048, 4096)
+    memory         = 512                         # Memory in MB
+    container_port = 80                          # Container port
 
-  # Service Configuration
-  desired_count        = 1              # 원하는 태스크 수
-  enable_service       = true           # ECS 서비스 생성 여부
-  enable_load_balancer = true           # ALB 생성 여부
+    # Container Configuration
+    image = "nginx:alpine"                       # Container image
 
-  # Domain Configuration
-  domain_name = "nginx.your-domain.com" # 서비스 도메인
+    # Service Configuration
+    desired_count        = 1                     # Initial task count (Auto Scaling will manage this)
+    enable_service       = true                  # Create ECS service
+    enable_load_balancer = true                  # Create ALB
 
-  # Auto Scaling Configuration
-  enable_autoscaling       = true       # 오토스케일링 활성화
-  min_capacity            = 1          # 최소 태스크 수
-  max_capacity            = 5          # 최대 태스크 수
-  target_cpu_utilization  = 70         # CPU 사용률 타겟 (%)
+    # Domain Configuration
+    domain_name     = "nginx.your-domain.com"   # Service domain
+    certificate_arn = null                       # Use default certificate
 
-  # Health Check Configuration
-  health_check_path    = "/"            # 헬스체크 경로
-  health_check_matcher = "200"          # 헬스체크 성공 응답 코드
+    # Auto Scaling Configuration
+    enable_autoscaling       = true              # Enable auto scaling
+    min_capacity            = 1                  # Minimum tasks
+    max_capacity            = 5                  # Maximum tasks
+    target_cpu_utilization  = 70                # CPU target percentage
 
-  # Logging Configuration
-  log_retention_days = 7                # 로그 보관 기간 (일)
+    # Health Check Configuration
+    health_check_path    = "/"                   # Health check path
+    health_check_matcher = "200"                 # Success response code
 
-  # Environment Variables
-  environment_variables = {
-    NGINX_PORT = "80"
-    ENV        = "dev"
+    # Logging Configuration
+    log_retention_days = 7                       # Log retention period (days)
+
+    # Environment Variables
+    environment_variables = {
+      NGINX_PORT   = "80"
+      ENV          = "dev"
+      SERVICE_NAME = "nginx-web"
+    }
+
+    # Secrets (empty for example)
+    secrets = {}
+  },
+
+  # ====================================================================
+  # API Service Example
+  # ====================================================================
+  "api-service" = {
+    # Task Definition Configuration
+    family         = "your-project-dev-api"     # Task definition family name
+    cpu            = 512                         # Higher CPU for API
+    memory         = 1024                        # Higher memory for API
+    container_port = 3000                        # API port
+
+    # Container Configuration
+    image = "node:18-alpine"                     # Node.js runtime
+
+    # Optional: Custom command for simple API
+    command = [
+      "sh", "-c",
+      "npm init -y && npm install express && echo 'const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello API!\"})); app.get(\"/health\", (req, res) => res.json({status: \"healthy\"})); app.listen(3000);' > app.js && node app.js"
+    ]
+
+    # Service Configuration
+    desired_count        = 2                     # Start with 2 instances
+    enable_service       = true                  # Create ECS service
+    enable_load_balancer = true                  # Create ALB
+
+    # Domain Configuration
+    domain_name     = "api.your-domain.com"     # API domain
+    certificate_arn = null                       # Use default certificate
+
+    # Auto Scaling Configuration
+    enable_autoscaling       = true              # Enable auto scaling
+    min_capacity            = 1                  # Minimum tasks
+    max_capacity            = 10                 # Higher max for API
+    target_cpu_utilization  = 80                # Higher CPU threshold
+
+    # Health Check Configuration
+    health_check_path    = "/health"             # API health endpoint
+    health_check_matcher = "200"                 # Success response code
+
+    # Logging Configuration
+    log_retention_days = 14                      # Longer retention for API
+
+    # Environment Variables
+    environment_variables = {
+      NODE_ENV = "development"
+      PORT     = "3000"
+      API_NAME = "your-api-service"
+    }
+
+    # Secrets (empty for example)
+    secrets = {}
+  },
+
+  # ====================================================================
+  # Internal Service Example (No Load Balancer)
+  # ====================================================================
+  "worker-service" = {
+    # Task Definition Configuration
+    family         = "your-project-dev-worker"  # Task definition family name
+    cpu            = 256                         # CPU units
+    memory         = 512                         # Memory in MB
+    container_port = 8080                        # Internal port
+
+    # Container Configuration
+    image = "python:3.11-alpine"                # Python runtime
+
+    # Service Configuration
+    desired_count        = 1                     # Single worker instance
+    enable_service       = true                  # Create ECS service
+    enable_load_balancer = false                # No ALB needed for internal service
+
+    # Domain Configuration (not needed for internal service)
+    domain_name     = null                       # No external domain
+    certificate_arn = null                       # No certificate needed
+
+    # Auto Scaling Configuration
+    enable_autoscaling       = false             # No auto scaling for worker
+    min_capacity            = 1                  # Not used when auto scaling disabled
+    max_capacity            = 1                  # Not used when auto scaling disabled
+    target_cpu_utilization  = 70                # Not used when auto scaling disabled
+
+    # Health Check Configuration (not used without ALB)
+    health_check_path    = "/status"             # Internal status endpoint
+    health_check_matcher = "200"                 # Success response code
+
+    # Logging Configuration
+    log_retention_days = 7                       # Log retention period
+
+    # Environment Variables
+    environment_variables = {
+      WORKER_TYPE = "background"
+      LOG_LEVEL   = "INFO"
+    }
+
+    # Custom Security Group Rules for internal access
+    security_group_rules = {
+      internal_access = {
+        type        = "ingress"
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["10.0.0.0/16"]           # VPC internal access only
+      }
+    }
+
+    # Secrets (empty for example)
+    secrets = {}
   }
 }
 
@@ -97,23 +219,23 @@ ecs_cluster = {
   # Capacity Provider Settings
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
-  # Monitoring & Logging (비용 고려)
-  enable_container_insights           = false    # Container Insights (비용 발생)
-  log_retention_in_days              = 7        # 로그 보관 기간
-  create_service_discovery_namespace = false    # Service Discovery (필요시 true)
-  create_execution_role              = true     # Execution Role 생성
+  # Monitoring & Logging (cost considerations)
+  enable_container_insights           = false    # Container Insights (incurs cost)
+  log_retention_in_days              = 7        # Log retention period
+  create_service_discovery_namespace = false    # Service Discovery (enable if needed)
+  create_execution_role              = true     # Execution Role creation
 
-  # Capacity Provider Strategy (비용 최적화)
+  # Capacity Provider Strategy (cost optimization)
   capacity_provider_strategy = [
     {
-      capacity_provider = "FARGATE_SPOT"    # Spot 인스턴스 우선 (저렴)
-      weight           = 3                  # 가중치
-      base            = 0                   # 기본 개수
+      capacity_provider = "FARGATE_SPOT"    # Spot instances first (cheaper)
+      weight           = 3                  # Weight
+      base            = 0                   # Base count
     },
     {
-      capacity_provider = "FARGATE"         # 일반 Fargate (안정성)
-      weight           = 1                  # 가중치
-      base            = 1                   # 기본 개수
+      capacity_provider = "FARGATE"         # Regular Fargate (stability)
+      weight           = 1                  # Weight
+      base            = 1                   # Base count
     }
   ]
 }
@@ -122,18 +244,44 @@ ecs_cluster = {
 # ACM Certificate Configuration
 # ====================================================================
 acm_config = {
-  validation_method                           = "DNS"        # DNS 검증
-  create_route53_records                     = true         # Route53 레코드 자동 생성
-  wait_for_validation                        = true         # 검증 완료 대기
-  key_algorithm                              = "RSA_2048"   # 키 알고리즘
-  certificate_transparency_logging_preference = "ENABLED"   # CT 로깅
+  validation_method                           = "DNS"        # DNS validation
+  create_route53_records                     = true         # Auto-create Route53 records
+  wait_for_validation                        = true         # Wait for validation completion
+  key_algorithm                              = "RSA_2048"   # Key algorithm
+  certificate_transparency_logging_preference = "ENABLED"   # CT logging
 }
 
 # ====================================================================
-# Sensitive Variables (별도 설정 필요)
+# Sensitive Variables (separate configuration required)
 # ====================================================================
 # ROUTE53_PUB_ZONE_ID = "Z1234567890ABC"    # Route53 Hosted Zone ID
-# 위 변수는 다음 중 하나로 설정:
-# 1. Terraform Cloud Variables
-# 2. 환경변수: export TF_VAR_ROUTE53_PUB_ZONE_ID="Z1234567890ABC"
-# 3. CLI: terraform apply -var="ROUTE53_PUB_ZONE_ID=Z1234567890ABC"
+#
+# Set this variable using one of the following methods:
+# 1. Terraform Cloud Variables (recommended)
+# 2. Environment variable: export TF_VAR_ROUTE53_PUB_ZONE_ID="Z1234567890ABC"
+# 3. CLI argument: terraform apply -var="ROUTE53_PUB_ZONE_ID=Z1234567890ABC"
+
+# ====================================================================
+# Usage Examples
+# ====================================================================
+#
+# Single service (nginx only):
+# Remove "api-service" and "worker-service" from the services map
+#
+# Multiple web services:
+# Add more services with different domain names (e.g., nginx1.domain.com, nginx2.domain.com)
+#
+# Internal services only:
+# Set enable_load_balancer = false and domain_name = null
+#
+# Cost optimization:
+# - Set desired_count = 1, max_capacity = 3
+# - Use FARGATE_SPOT with higher weight
+# - Disable container_insights
+# - Use shorter log_retention_days
+#
+# Production settings:
+# - Set desired_count = 2 or higher
+# - Enable container_insights = true
+# - Use longer log_retention_days (30-90)
+# - Set enable_nat_gateway = true for private subnets
