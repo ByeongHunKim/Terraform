@@ -1,0 +1,139 @@
+# ====================================================================
+# Terraform Variables Example File
+# ====================================================================
+
+# ====================================================================
+# Basic Environment Settings
+# ====================================================================
+environment = "dev"                    # dev, stg, prod
+project     = "your-project-name"      # 프로젝트 이름
+owner       = "your-name"              # 소유자 이름
+aws_region  = "ap-northeast-2"         # AWS 리전
+
+# ====================================================================
+# External Service Integration
+# ====================================================================
+# Terraform Cloud Settings
+tfc_organization = "Your-TFC-Org"      # Terraform Cloud 조직명
+tfc_workspace    = "Your-Workspace"    # Terraform Cloud 워크스페이스명
+
+# GitHub Settings
+github_organization = "your-github-org"    # GitHub 조직명 또는 사용자명
+github_repository   = "your-repo-name"     # GitHub 저장소명
+
+# ====================================================================
+# Network Configuration
+# ====================================================================
+vpc_cidr_block = "10.0.0.0/16"         # VPC CIDR 블록
+
+public_cidrs = [                        # Public 서브넷 CIDR
+  "10.0.1.0/24",
+  "10.0.2.0/24"
+]
+
+private_cidrs = [                       # Private 서브넷 CIDR
+  "10.0.10.0/24",
+  "10.0.20.0/24"
+]
+
+database_cidrs = [                      # Database 서브넷 CIDR
+  "10.0.100.0/27",
+  "10.0.200.0/27"
+]
+
+# ====================================================================
+# Cost Optimization Settings
+# ====================================================================
+enable_nat_gateway = false             # true: 프로덕션용, false: 개발용 (비용절약)
+
+# ====================================================================
+# Domain and SSL Configuration
+# ====================================================================
+primary_domain  = "your-domain.com"    # 기본 도메인
+create_wildcard = true                  # 와일드카드 인증서 생성 여부
+
+# ====================================================================
+# ECS Service Configuration
+# ====================================================================
+nginx_service = {
+  # Container Configuration
+  image          = "nginx:alpine"       # 컨테이너 이미지
+  cpu            = 256                  # CPU 단위 (256, 512, 1024, 2048, 4096)
+  memory         = 512                  # 메모리 MB
+  container_port = 80                   # 컨테이너 포트
+
+  # Service Configuration
+  desired_count        = 1              # 원하는 태스크 수
+  enable_service       = true           # ECS 서비스 생성 여부
+  enable_load_balancer = true           # ALB 생성 여부
+
+  # Domain Configuration
+  domain_name = "nginx.your-domain.com" # 서비스 도메인
+
+  # Auto Scaling Configuration
+  enable_autoscaling       = true       # 오토스케일링 활성화
+  min_capacity            = 1          # 최소 태스크 수
+  max_capacity            = 5          # 최대 태스크 수
+  target_cpu_utilization  = 70         # CPU 사용률 타겟 (%)
+
+  # Health Check Configuration
+  health_check_path    = "/"            # 헬스체크 경로
+  health_check_matcher = "200"          # 헬스체크 성공 응답 코드
+
+  # Logging Configuration
+  log_retention_days = 7                # 로그 보관 기간 (일)
+
+  # Environment Variables
+  environment_variables = {
+    NGINX_PORT = "80"
+    ENV        = "dev"
+  }
+}
+
+# ====================================================================
+# ECS Cluster Configuration
+# ====================================================================
+ecs_cluster = {
+  # Capacity Provider Settings
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  # Monitoring & Logging (비용 고려)
+  enable_container_insights           = false    # Container Insights (비용 발생)
+  log_retention_in_days              = 7        # 로그 보관 기간
+  create_service_discovery_namespace = false    # Service Discovery (필요시 true)
+  create_execution_role              = true     # Execution Role 생성
+
+  # Capacity Provider Strategy (비용 최적화)
+  capacity_provider_strategy = [
+    {
+      capacity_provider = "FARGATE_SPOT"    # Spot 인스턴스 우선 (저렴)
+      weight           = 3                  # 가중치
+      base            = 0                   # 기본 개수
+    },
+    {
+      capacity_provider = "FARGATE"         # 일반 Fargate (안정성)
+      weight           = 1                  # 가중치
+      base            = 1                   # 기본 개수
+    }
+  ]
+}
+
+# ====================================================================
+# ACM Certificate Configuration
+# ====================================================================
+acm_config = {
+  validation_method                           = "DNS"        # DNS 검증
+  create_route53_records                     = true         # Route53 레코드 자동 생성
+  wait_for_validation                        = true         # 검증 완료 대기
+  key_algorithm                              = "RSA_2048"   # 키 알고리즘
+  certificate_transparency_logging_preference = "ENABLED"   # CT 로깅
+}
+
+# ====================================================================
+# Sensitive Variables (별도 설정 필요)
+# ====================================================================
+# ROUTE53_PUB_ZONE_ID = "Z1234567890ABC"    # Route53 Hosted Zone ID
+# 위 변수는 다음 중 하나로 설정:
+# 1. Terraform Cloud Variables
+# 2. 환경변수: export TF_VAR_ROUTE53_PUB_ZONE_ID="Z1234567890ABC"
+# 3. CLI: terraform apply -var="ROUTE53_PUB_ZONE_ID=Z1234567890ABC"

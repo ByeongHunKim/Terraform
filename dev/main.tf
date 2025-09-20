@@ -1,195 +1,121 @@
 # ====================================================================
-# Environment Configuration - Development Settings
-# - Modify these values for different environments
-# - All environment-specific settings in one place
+# Local Values
 # ====================================================================
 locals {
-  # Environment Settings - CHANGE THESE VALUES FOR DIFFERENT ENVIRONMENTS
-  environment = "dev"                    # Environment: dev, staging, prod
-  project     = "terraform-study"        # Project name
-  owner       = "meiko"                  # Owner/Team name
-  region      = "ap-northeast-2"         # AWS region
-
-  # Terraform Cloud Settings
-  tfc_organization = "Meiko_Org"
-  tfc_workspace    = "Meiko"
-
-  # GitHub Settings
-  github_organization = "ByeongHunKim"  # GitHub username or organization
-  github_repository   = "Terraform"        # GitHub repository name
-
-  # Cost Optimization Settings for Development
-  enable_nat_gateway = false             # Disable NAT Gateway to save costs in dev
-
-  # Network Configuration
-  vpc_cidr_block = "10.0.0.0/16"         # VPC CIDR block
-  public_cidrs = [                       # Public subnet CIDR blocks
-    "10.0.1.0/24",
-    "10.0.2.0/24"
-  ]
-  private_cidrs = [                      # Private subnet CIDR blocks
-    "10.0.10.0/24",
-    "10.0.20.0/24"
-  ]
-
-  database_cidrs = [                     # Database subnet CIDR blocks
-    "10.0.100.0/27",
-    "10.0.200.0/27"
-  ]
-
-  # SSL/TLS Certificate Configuration
-  primary_domain = "meiko.co.kr"
-  create_wildcard = true
-  route53_zone_id = var.ROUTE53_PUB_ZONE_ID
-
-  # Common Tags - Applied to all resources
   common_tags = {
-    Environment = local.environment
-    Project     = local.project
+    Environment = var.environment
+    Project     = var.project
     ManagedBy   = "terraform"
-    Owner       = local.owner
-    Region      = local.region
-    CostCenter  = "${local.project}-${local.environment}"
+    Owner       = var.owner
+    Region      = var.aws_region
+    CostCenter  = "${var.project}-${var.environment}"
   }
+
+  name_prefix = "${var.project}-${var.environment}"
+
+  cluster_name = "${local.name_prefix}-cluster"
 }
 
 # ====================================================================
 # Terraform Cloud OIDC Module
-# - Creates OIDC provider and role for Terraform Cloud Dynamic Provider
 # ====================================================================
 module "terraform_cloud_oidc" {
   source = "../modules/terraform-cloud-oidc"
 
-  # Terraform Cloud Settings
-  terraform_cloud_organization = local.tfc_organization
-  workspace_name               = local.tfc_workspace
+  terraform_cloud_organization = var.tfc_organization
+  workspace_name               = var.tfc_workspace
 
-  # IAM Role Configuration
-  role_name = "${local.project}-${local.environment}-tfc-role"
+  role_name = "${local.name_prefix}-tfc-role"
 
-  # Naming and Tagging
-  name_prefix = "${local.project}-${local.environment}"
+  name_prefix = local.name_prefix
   tags        = local.common_tags
 }
 
 # ====================================================================
 # GitHub Actions OIDC Module
-# - Creates OIDC provider and role for GitHub Actions
-# - Same structure as terraform_cloud_oidc with AdministratorAccess
 # ====================================================================
 module "github_actions_oidc" {
   source = "../modules/github-actions-oidc"
 
-  # GitHub Settings
-  github_organization = local.github_organization
-  repository_name     = local.github_repository
+  github_organization = var.github_organization
+  repository_name     = var.github_repository
 
-  # IAM Role Configuration
-  role_name = "${local.project}-${local.environment}-github-actions-role"
+  role_name = "${local.name_prefix}-github-actions-role"
 
-  # IAM Policies - Administrator Access (same as Terraform Cloud)
   policy_arns = [
     "arn:aws:iam::aws:policy/AdministratorAccess"
   ]
 
-  # Naming and Tagging
-  name_prefix = "${local.project}-${local.environment}"
+  name_prefix = local.name_prefix
   tags        = local.common_tags
 }
 
 # ====================================================================
-# VPC Module - Network Infrastructure
-# - Creates VPC with public and private subnets
-# - Internet Gateway for public subnet connectivity
-# - NAT Gateway controlled by local settings
+# VPC Module
 # ====================================================================
 module "vpc" {
   source = "../modules/vpc"
 
-  # Network Configuration
-  vpc_cidr           = local.vpc_cidr_block
-  public_subnets     = local.public_cidrs
-  private_subnets    = local.private_cidrs
-  database_subnets   = local.database_cidrs
-  enable_nat_gateway = local.enable_nat_gateway
+  vpc_cidr           = var.vpc_cidr_block
+  public_subnets     = var.public_cidrs
+  private_subnets    = var.private_cidrs
+  database_subnets   = var.database_cidrs
+  enable_nat_gateway = var.enable_nat_gateway
 
+  # Database Subnet Group
   create_database_subnet_group = true
-  database_subnet_group_name   = "${local.project}-${local.environment}-db-subnet-group"
+  database_subnet_group_name   = "${local.name_prefix}-db-subnet-group"
 
   # Naming and Tagging
-  name_prefix = "${local.project}-${local.environment}"
+  name_prefix = local.name_prefix
   tags        = local.common_tags
 }
 
 # ====================================================================
-# ACM Module - SSL/TLS Certificate Management for meiko.co.kr
-# - Creates SSL/TLS certificates for meiko.co.kr domain
-# - Automatic DNS validation with existing Route53 hosted zone
-# - Supports both single domain and wildcard certificates
+# ACM Module
 # ====================================================================
 module "acm" {
   source = "../modules/acm"
 
-  # Domain Configuration
-  domain_name = local.primary_domain
+  domain_name = var.primary_domain
 
-  create_wildcard_certificate = local.create_wildcard
-  wildcard_domain            = "*.${local.primary_domain}"
+  create_wildcard_certificate = var.create_wildcard
+  wildcard_domain            = "*.${var.primary_domain}"
 
-  # DNS Validation Configuration
-  validation_method        = "DNS"
-  create_route53_records   = true
-  route53_zone_id         = local.route53_zone_id
-  wait_for_validation     = true
+  validation_method        = var.acm_config.validation_method
+  create_route53_records   = var.acm_config.create_route53_records
+  route53_zone_id         = var.ROUTE53_PUB_ZONE_ID
+  wait_for_validation     = var.acm_config.wait_for_validation
 
-  # Certificate Security Configuration
-  key_algorithm = "RSA_2048"                                # RSA 2048-bit key
-  certificate_transparency_logging_preference = "ENABLED"   # CT logging enable
+  key_algorithm = var.acm_config.key_algorithm
+  certificate_transparency_logging_preference = var.acm_config.certificate_transparency_logging_preference
 
-  name_prefix = "${local.project}-${local.environment}"
+  name_prefix = local.name_prefix
   tags = merge(local.common_tags, {
     Purpose = "SSL/TLS Certificate"
-    Domain  = local.primary_domain
+    Domain  = var.primary_domain
     Type    = "Production-Ready"
   })
 }
 
 # ====================================================================
-# ECS Module - Container Orchestration Platform
-# - Creates ECS cluster with Fargate support
-# - Cost-optimized: cluster only, no running tasks
-# - CloudWatch logging configured
+# ECS Module
 # ====================================================================
 module "ecs" {
   source = "../modules/ecs"
 
-  # Cluster Configuration
-  cluster_name = "${local.project}-${local.environment}-cluster"
+  cluster_name = local.cluster_name
   vpc_id       = module.vpc.vpc_id
-  environment  = local.environment
+  environment  = var.environment
 
-  # Capacity Provider Strategy - Cost Optimized
-  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
-  default_capacity_provider_strategy = [
-    {
-      capacity_provider = "FARGATE_SPOT"  # Cheaper option first
-      weight           = 3
-      base            = 0
-    },
-    {
-      capacity_provider = "FARGATE"       # Standard option for critical tasks
-      weight           = 1
-      base            = 1
-    }
-  ]
+  capacity_providers = var.ecs_cluster.capacity_providers
+  default_capacity_provider_strategy = var.ecs_cluster.capacity_provider_strategy
 
-  # Cost Optimization Settings
-  enable_container_insights           = false  # Disable to save costs
-  log_retention_in_days              = 7      # Short retention period
-  create_service_discovery_namespace = false  # Not needed for cluster-only setup
-  create_execution_role              = true   # Keep for future tasks
+  enable_container_insights           = var.ecs_cluster.enable_container_insights
+  log_retention_in_days              = var.ecs_cluster.log_retention_in_days
+  create_service_discovery_namespace = var.ecs_cluster.create_service_discovery_namespace
+  create_execution_role              = var.ecs_cluster.create_execution_role
 
-  # Naming and Tagging
   tags = merge(local.common_tags, {
     Purpose = "Container Orchestration"
     Phase   = "1 - Cluster Only"
@@ -198,9 +124,7 @@ module "ecs" {
 }
 
 # ====================================================================
-# ECS Service Module - Multiple Services Configuration
-# - Creates Task Definitions, Services, ALBs, and Security Groups
-# - Example: Nginx and API services
+# ECS Service Module
 # ====================================================================
 module "ecs_services" {
   source = "../modules/ecs-service"
@@ -209,111 +133,49 @@ module "ecs_services" {
   cluster_name         = module.ecs.cluster_name
   vpc_id              = module.vpc.vpc_id
   public_subnet_ids   = module.vpc.public_subnet_ids
-  private_subnet_ids  = module.vpc.public_subnet_ids // private_subnet_ids
+  private_subnet_ids  = module.vpc.public_subnet_ids  # temp: private_subnet_ids 사용시 NAT Gateway 필요
   execution_role_arn  = module.ecs.execution_role_arn
 
   # Global Configuration
-  environment         = local.environment
-  name_prefix         = "${local.project}-${local.environment}"
-  route53_zone_id     = local.route53_zone_id
+  environment             = var.environment
+  name_prefix             = local.name_prefix
+  route53_zone_id         = var.ROUTE53_PUB_ZONE_ID
   default_certificate_arn = module.acm.certificate_arn
 
-  # Services Configuration - 여러 서비스를 for_each로 관리
   services = {
-    # ====================================================================
-    # Nginx Web Server Service
-    # ====================================================================
     "nginx-web" = {
       # Task Definition Configuration
-      family         = "${local.project}-${local.environment}-nginx"
-      cpu            = 256
-      memory         = 512
-      container_port = 80
+      family         = "${local.name_prefix}-nginx"
+      cpu            = var.nginx_service.cpu
+      memory         = var.nginx_service.memory
+      container_port = var.nginx_service.container_port
 
       # Container Configuration
-      image = "nginx:alpine"
-      environment_variables = {
-        NGINX_PORT = "80"
-        ENV        = local.environment
-      }
+      image = var.nginx_service.image
+      environment_variables = var.nginx_service.environment_variables
 
       # Service Configuration
-      desired_count = 1
-      enable_service = true
+      desired_count        = var.nginx_service.desired_count
+      enable_service       = var.nginx_service.enable_service
+      enable_load_balancer = var.nginx_service.enable_load_balancer
 
-      # Load Balancer Configuration
-      enable_load_balancer = true
-      health_check_path    = "/"
-      health_check_matcher = "200"
+      # Health Check Configuration
+      health_check_path    = var.nginx_service.health_check_path
+      health_check_matcher = var.nginx_service.health_check_matcher
 
       # Domain Configuration
-      domain_name     = "nginx.meiko.co.kr"
+      domain_name     = var.nginx_service.domain_name
       certificate_arn = module.acm.certificate_arn
 
       # Auto Scaling Configuration
-      enable_autoscaling = true
-      min_capacity      = 1
-      max_capacity      = 5
-      target_cpu_utilization = 70
+      enable_autoscaling       = var.nginx_service.enable_autoscaling
+      min_capacity            = var.nginx_service.min_capacity
+      max_capacity            = var.nginx_service.max_capacity
+      target_cpu_utilization  = var.nginx_service.target_cpu_utilization
 
       # Logging Configuration
-      log_retention_days = 7
-    },
-
-#    # ====================================================================
-#    # Simple API Service
-#    # ====================================================================
-#    "simple-api" = {
-#      # Task Definition Configuration
-#      family         = "${local.project}-${local.environment}-api"
-#      cpu            = 512
-#      memory         = 1024
-#      container_port = 3000
-#
-#      # Container Configuration - Simple Node.js API
-#      image = "node:18-alpine"
-#      command = [
-#        "sh", "-c",
-#        "echo 'const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello from API!\", env: process.env.NODE_ENV})); app.get(\"/health\", (req, res) => res.json({status: \"OK\", timestamp: new Date().toISOString()})); app.listen(3000, () => console.log(\"API running on port 3000\"));' > app.js && npm init -y && npm install express && node app.js"
-#      ]
-#
-#      environment_variables = {
-#        NODE_ENV = local.environment
-#        PORT     = "3000"
-#        API_NAME = "terraform-study-api"
-#      }
-#
-#      # Service Configuration
-#      desired_count = 1
-#      enable_service = true
-#
-#      # Load Balancer Configuration
-#      enable_load_balancer = true
-#      health_check_path    = "/health"
-#      health_check_matcher = "200"
-#
-#      # Domain Configuration
-#      domain_name     = "api.meiko.co.kr"
-#      certificate_arn = module.acm.certificate_arn
-#
-#      # Auto Scaling Configuration
-#      enable_autoscaling = false  # API는 작은 규모로 시작
-#
-#      # Security Configuration
-#      security_group_rules = {
-#        # API 내부 통신을 위한 추가 규칙 (예시)
-#        internal_api = {
-#          type      = "ingress"
-#          from_port = 3000
-#          to_port   = 3000
-#          protocol  = "tcp"
-#          cidr_blocks = [local.vpc_cidr_block]
-#        }
-#      }
-#
-#      # Logging Configuration
-#      log_retention_days = 14  # API는 좀 더 긴 로그 보관
-#    }
+      log_retention_days = var.nginx_service.log_retention_days
+    }
   }
 
   # Common Tags
