@@ -177,16 +177,25 @@ variable "create_wildcard" {
 }
 
 # ====================================================================
-# ECS Service Configuration
+# ECS Services Configuration
 # ====================================================================
-variable "nginx_service" {
-  description = "Nginx service configuration"
-  type = object({
-    # Container Configuration
-    image          = string
+variable "services" {
+  description = "Map of ECS services to create"
+  type = map(object({
+    # Task Definition Configuration
+    family         = string           # Task definition family name
     cpu            = number
     memory         = number
     container_port = number
+
+    # Container Configuration
+    image          = string
+
+    # Optional container configuration
+    command               = optional(list(string))
+    entrypoint           = optional(list(string))
+    working_directory    = optional(string)
+    essential            = optional(bool, true)
 
     # Service Configuration
     desired_count        = number
@@ -194,58 +203,77 @@ variable "nginx_service" {
     enable_load_balancer = bool
 
     # Domain Configuration
-    domain_name = string
+    domain_name = optional(string)
 
     # Auto Scaling Configuration
     enable_autoscaling       = bool
-    min_capacity            = number
-    max_capacity            = number
-    target_cpu_utilization  = number
+    min_capacity            = optional(number, 1)
+    max_capacity            = optional(number, 10)
+    target_cpu_utilization  = optional(number, 70)
+    target_memory_utilization = optional(number, 80)
 
     # Health Check Configuration
     health_check_path    = string
     health_check_matcher = string
+    health_check_port    = optional(string, "traffic-port")
+    health_check_protocol = optional(string, "HTTP")
 
     # Logging Configuration
     log_retention_days = number
 
-    # Environment Variables
+    # Environment Variables and Secrets
     environment_variables = map(string)
-  })
+    secrets              = optional(map(string), {})
+
+    # Deployment Configuration
+    deployment_minimum_healthy_percent = optional(number, 50)
+    deployment_maximum_percent        = optional(number, 200)
+    enable_execute_command           = optional(bool, false)
+
+    # Network Configuration
+    assign_public_ip = optional(bool, false)
+
+    # Security Configuration
+    security_group_rules = optional(map(object({
+      type        = string
+      from_port   = number
+      to_port     = number
+      protocol    = string
+      cidr_blocks = optional(list(string))
+      source_security_group_id = optional(string)
+    })), {})
+
+    # Service Discovery
+    enable_service_discovery = optional(bool, false)
+    service_discovery_namespace_id = optional(string)
+  }))
 
   validation {
-    condition     = contains([256, 512, 1024, 2048, 4096], var.nginx_service.cpu)
+    condition = alltrue([
+      for service in var.services : contains([256, 512, 1024, 2048, 4096], service.cpu)
+    ])
     error_message = "CPU must be one of: 256, 512, 1024, 2048, 4096."
   }
 
   validation {
-    condition     = var.nginx_service.memory >= 512 && var.nginx_service.memory <= 30720
+    condition = alltrue([
+      for service in var.services : service.memory >= 512 && service.memory <= 30720
+      ])
     error_message = "Memory must be between 512 MB and 30720 MB."
   }
 
   validation {
-    condition     = var.nginx_service.container_port > 0 && var.nginx_service.container_port <= 65535
+    condition = alltrue([
+      for service in var.services : service.container_port > 0 && service.container_port <= 65535
+      ])
     error_message = "Container port must be between 1 and 65535."
   }
 
   validation {
-    condition     = var.nginx_service.desired_count >= 0
+    condition = alltrue([
+      for service in var.services : service.desired_count >= 0
+      ])
     error_message = "Desired count must be 0 or greater."
-  }
-
-  validation {
-    condition     = var.nginx_service.min_capacity <= var.nginx_service.max_capacity
-    error_message = "Min capacity must be less than or equal to max capacity."
-  }
-
-  validation {
-    condition     = var.nginx_service.target_cpu_utilization > 0 && var.nginx_service.target_cpu_utilization <= 100
-    error_message = "Target CPU utilization must be between 1 and 100."
-  }
-
-  validation {
-    condition     = contains([1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653], var.nginx_service.log_retention_days)
-    error_message = "Log retention days must be a valid CloudWatch Logs retention value."
   }
 }
 
@@ -319,6 +347,7 @@ variable "acm_config" {
 variable "ROUTE53_PUB_ZONE_ID" {
   description = "Route53 hosted zone ID for DNS validation"
   type        = string
+  # sensitive   = true
 
   validation {
     condition     = can(regex("^Z[A-Z0-9]+$", var.ROUTE53_PUB_ZONE_ID))

@@ -136,47 +136,12 @@ module "ecs_services" {
   private_subnet_ids  = module.vpc.public_subnet_ids  # temp: private_subnet_ids 사용시 NAT Gateway 필요
   execution_role_arn  = module.ecs.execution_role_arn
 
-  # Global Configuration
   environment             = var.environment
   name_prefix             = local.name_prefix
   route53_zone_id         = var.ROUTE53_PUB_ZONE_ID
   default_certificate_arn = module.acm.certificate_arn
 
-  services = {
-    "nginx-web" = {
-      # Task Definition Configuration
-      family         = "${local.name_prefix}-nginx"
-      cpu            = var.nginx_service.cpu
-      memory         = var.nginx_service.memory
-      container_port = var.nginx_service.container_port
-
-      # Container Configuration
-      image = var.nginx_service.image
-      environment_variables = var.nginx_service.environment_variables
-
-      # Service Configuration
-      desired_count        = var.nginx_service.desired_count
-      enable_service       = var.nginx_service.enable_service
-      enable_load_balancer = var.nginx_service.enable_load_balancer
-
-      # Health Check Configuration
-      health_check_path    = var.nginx_service.health_check_path
-      health_check_matcher = var.nginx_service.health_check_matcher
-
-      # Domain Configuration
-      domain_name     = var.nginx_service.domain_name
-      certificate_arn = module.acm.certificate_arn
-
-      # Auto Scaling Configuration
-      enable_autoscaling       = var.nginx_service.enable_autoscaling
-      min_capacity            = var.nginx_service.min_capacity
-      max_capacity            = var.nginx_service.max_capacity
-      target_cpu_utilization  = var.nginx_service.target_cpu_utilization
-
-      # Logging Configuration
-      log_retention_days = var.nginx_service.log_retention_days
-    }
-  }
+  services = var.services
 
   # Common Tags
   tags = merge(local.common_tags, {
