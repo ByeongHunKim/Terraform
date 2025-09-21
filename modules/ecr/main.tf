@@ -50,14 +50,15 @@ resource "aws_ecr_lifecycle_policy" "main" {
 
   policy = jsonencode({
     rules = [
-      # Rule 1: Keep only latest N tagged images
+      # Rule 1: Keep only latest N tagged images (any tag)
       {
         rulePriority = 1
         description  = "Keep last ${each.value.keep_last_images} tagged images"
         selection = {
-          tagStatus     = "tagged"
-          countType     = "imageCountMoreThan"
-          countNumber   = each.value.keep_last_images
+          tagStatus       = "tagged"
+          tagPrefixList   = ["v", "latest", "main", "dev", "prod", "staging"]
+          countType       = "imageCountMoreThan"
+          countNumber     = each.value.keep_last_images
         }
         action = {
           type = "expire"

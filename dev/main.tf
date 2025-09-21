@@ -124,6 +124,49 @@ module "ecs" {
 }
 
 # ====================================================================
+# ECR Module
+# ====================================================================
+module "ecr" {
+  source = "../modules/ecr"
+
+  # ECR repositories for each service
+  repositories = {
+    for service_key, service in var.services : service_key => {
+      # Image Configuration
+      image_tag_mutability = var.environment == "prod" ? "IMMUTABLE" : "MUTABLE"
+      scan_on_push        = true
+
+      # Encryption
+      encryption_type = "AES256"
+      kms_key_id     = null
+
+      # Lifecycle Policy
+      lifecycle_policy_enabled = true
+      keep_last_images        = var.environment == "prod" ? 50 : 10
+      untagged_expire_days    = var.environment == "prod" ? 14 : 3
+
+      # Access Control
+      allowed_principals = [
+        module.ecs.execution_role_arn,
+        module.github_actions_oidc.role_arn
+      ]
+
+      # Development Configuration
+      force_delete = var.environment == "dev"
+    }
+  }
+
+  environment = var.environment
+  name_prefix = local.name_prefix
+
+  tags = merge(local.common_tags, {
+    Module  = "ecr"
+    Purpose = "Container Registry"
+    Phase   = "1 - Image Storage"
+  })
+}
+
+# ====================================================================
 # ECS Service Module
 # ====================================================================
 module "ecs_services" {

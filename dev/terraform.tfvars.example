@@ -48,59 +48,86 @@ database_cidrs = [                      # Database subnet CIDRs
 enable_nat_gateway = false             # true: production, false: dev (cost savings)
 
 # ====================================================================
+# ECR Configuration
+# ====================================================================
+# IMPORTANT: 2-step deployment process
+# Step 1: Set to false, deploy ECR repositories
+# Step 2: Build & push images, then set to true
+use_ecr_images = false                  # Switch to true after pushing images to ECR
+
+# ====================================================================
 # Domain and SSL Configuration
 # ====================================================================
 primary_domain  = "your-domain.com"    # Primary domain name
 create_wildcard = true                  # Create wildcard certificate
 
 # ====================================================================
-# Multiple ECS Services Configuration
+# Enhanced ECS Services Configuration with ECR Support
 # ====================================================================
 services = {
   # ====================================================================
-  # Nginx Web Server Example
+  # Nginx Web Server Service
   # ====================================================================
   "nginx-web" = {
     # Task Definition Configuration
-    family         = "your-project-dev-nginx"   # Task definition family name
-    cpu            = 256                         # CPU units (256, 512, 1024, 2048, 4096)
-    memory         = 512                         # Memory in MB
-    container_port = 80                          # Container port
+    family         = "your-project-dev-nginx-web"   # Task definition family name
+    cpu            = 256                             # CPU units (256, 512, 1024, 2048, 4096)
+    memory         = 512                             # Memory in MB
+    container_port = 80                              # Container port
 
     # Container Configuration
-    image = "nginx:alpine"                       # Container image
+    image = "nginx:alpine"                           # Initial image (will switch to ECR)
 
     # Service Configuration
-    desired_count        = 1                     # Initial task count (Auto Scaling will manage this)
-    enable_service       = true                  # Create ECS service
-    enable_load_balancer = true                  # Create ALB
+    desired_count        = 1                         # Initial task count
+    enable_service       = true                      # Create ECS service
+    enable_load_balancer = true                      # Create ALB
 
     # Domain Configuration
-    domain_name     = "nginx.your-domain.com"   # Service domain
-    certificate_arn = null                       # Use default certificate
+    domain_name     = "nginx.your-domain.com"       # Service domain
+    certificate_arn = null                           # Use default certificate
 
     # Auto Scaling Configuration
-    enable_autoscaling       = true              # Enable auto scaling
-    min_capacity            = 1                  # Minimum tasks
-    max_capacity            = 5                  # Maximum tasks
-    target_cpu_utilization  = 70                # CPU target percentage
+    enable_autoscaling       = true                  # Enable auto scaling
+    min_capacity            = 1                      # Minimum tasks
+    max_capacity            = 5                      # Maximum tasks
+    target_cpu_utilization  = 70                    # CPU target percentage
+    target_memory_utilization = 80                  # Memory target percentage
 
     # Health Check Configuration
-    health_check_path    = "/"                   # Health check path
-    health_check_matcher = "200"                 # Success response code
+    health_check_path    = "/"                       # Health check path
+    health_check_matcher = "200"                     # Success response code
+    health_check_port    = "traffic-port"            # Health check port
+    health_check_protocol = "HTTP"                   # Health check protocol
 
     # Logging Configuration
-    log_retention_days = 7                       # Log retention period (days)
+    log_retention_days = 7                           # Log retention period (days)
 
     # Environment Variables
     environment_variables = {
       NGINX_PORT   = "80"
       ENV          = "dev"
       SERVICE_NAME = "nginx-web"
+      VERSION      = "1.0.0"
     }
 
-    # Secrets (empty for example)
+    # Secrets (empty for basic example)
     secrets = {}
+
+    # Deployment Configuration
+    deployment_minimum_healthy_percent = 50         # Rolling deployment settings
+    deployment_maximum_percent        = 200
+    enable_execute_command           = false        # ECS Exec for debugging
+
+    # Network Configuration
+    assign_public_ip = false                         # Private subnet deployment
+
+    # Security Group Rules (additional custom rules)
+    security_group_rules = {}
+
+    # Service Discovery
+    enable_service_discovery = false                # Enable if using service mesh
+    service_discovery_namespace_id = null
   },
 
   # ====================================================================
@@ -108,92 +135,122 @@ services = {
   # ====================================================================
   "api-service" = {
     # Task Definition Configuration
-    family         = "your-project-dev-api"     # Task definition family name
-    cpu            = 512                         # Higher CPU for API
-    memory         = 1024                        # Higher memory for API
-    container_port = 3000                        # API port
+    family         = "your-project-dev-api"         # Task definition family name
+    cpu            = 512                             # Higher CPU for API
+    memory         = 1024                            # Higher memory for API
+    container_port = 3000                            # API port
 
     # Container Configuration
-    image = "node:18-alpine"                     # Node.js runtime
+    image = "node:18-alpine"                         # Node.js runtime
 
-    # Optional: Custom command for simple API
+    # Optional: Custom command for demo API
     command = [
       "sh", "-c",
-      "npm init -y && npm install express && echo 'const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello API!\"})); app.get(\"/health\", (req, res) => res.json({status: \"healthy\"})); app.listen(3000);' > app.js && node app.js"
+      "npm init -y && npm install express && echo 'const express = require(\"express\"); const app = express(); app.get(\"/\", (req, res) => res.json({message: \"Hello API!\", service: \"api-service\"})); app.get(\"/health\", (req, res) => res.json({status: \"healthy\", timestamp: new Date().toISOString()})); app.listen(3000, () => console.log(\"API running on port 3000\"));' > app.js && node app.js"
     ]
 
     # Service Configuration
-    desired_count        = 2                     # Start with 2 instances
-    enable_service       = true                  # Create ECS service
-    enable_load_balancer = true                  # Create ALB
+    desired_count        = 2                         # Start with 2 instances
+    enable_service       = true                      # Create ECS service
+    enable_load_balancer = true                      # Create ALB
 
     # Domain Configuration
-    domain_name     = "api.your-domain.com"     # API domain
-    certificate_arn = null                       # Use default certificate
+    domain_name     = "api.your-domain.com"         # API domain
+    certificate_arn = null                           # Use default certificate
 
     # Auto Scaling Configuration
-    enable_autoscaling       = true              # Enable auto scaling
-    min_capacity            = 1                  # Minimum tasks
-    max_capacity            = 10                 # Higher max for API
-    target_cpu_utilization  = 80                # Higher CPU threshold
+    enable_autoscaling       = true                  # Enable auto scaling
+    min_capacity            = 1                      # Minimum tasks
+    max_capacity            = 10                     # Higher max for API
+    target_cpu_utilization  = 80                    # Higher CPU threshold
+    target_memory_utilization = 85                  # Memory target
 
     # Health Check Configuration
-    health_check_path    = "/health"             # API health endpoint
-    health_check_matcher = "200"                 # Success response code
+    health_check_path    = "/health"                 # API health endpoint
+    health_check_matcher = "200"                     # Success response code
 
     # Logging Configuration
-    log_retention_days = 14                      # Longer retention for API
+    log_retention_days = 14                          # Longer retention for API
 
     # Environment Variables
     environment_variables = {
-      NODE_ENV = "development"
-      PORT     = "3000"
-      API_NAME = "your-api-service"
+      NODE_ENV     = "development"
+      PORT         = "3000"
+      API_NAME     = "your-api-service"
+      LOG_LEVEL    = "info"
+      API_VERSION  = "v1"
     }
 
-    # Secrets (empty for example)
-    secrets = {}
+    # Secrets (example structure)
+    secrets = {
+      # Example: "DATABASE_URL" = "arn:aws:secretsmanager:region:account:secret:db-url"
+      # Example: "JWT_SECRET"   = "arn:aws:secretsmanager:region:account:secret:jwt-key"
+    }
+
+    # Deployment Configuration
+    deployment_minimum_healthy_percent = 50
+    deployment_maximum_percent        = 200
+    enable_execute_command           = true          # Enable for API debugging
+
+    # Network Configuration
+    assign_public_ip = false
+
+    # Custom Security Group Rules
+    security_group_rules = {}
+
+    # Service Discovery
+    enable_service_discovery = false
+    service_discovery_namespace_id = null
   },
 
   # ====================================================================
-  # Internal Service Example (No Load Balancer)
+  # Background Worker Service (No Load Balancer)
   # ====================================================================
   "worker-service" = {
     # Task Definition Configuration
-    family         = "your-project-dev-worker"  # Task definition family name
-    cpu            = 256                         # CPU units
-    memory         = 512                         # Memory in MB
-    container_port = 8080                        # Internal port
+    family         = "your-project-dev-worker"      # Task definition family name
+    cpu            = 256                             # CPU units
+    memory         = 512                             # Memory in MB
+    container_port = 8080                            # Internal port
 
     # Container Configuration
-    image = "python:3.11-alpine"                # Python runtime
+    image = "python:3.11-alpine"                    # Python runtime
+
+    # Optional: Custom command for worker
+    command = [
+      "sh", "-c",
+      "pip install flask && python -c \"from flask import Flask, jsonify; app = Flask(__name__); @app.route('/status', methods=['GET']); def status(): return jsonify({'status': 'healthy', 'service': 'worker'}); app.run(host='0.0.0.0', port=8080)\""
+    ]
 
     # Service Configuration
-    desired_count        = 1                     # Single worker instance
-    enable_service       = true                  # Create ECS service
-    enable_load_balancer = false                # No ALB needed for internal service
+    desired_count        = 1                         # Single worker instance
+    enable_service       = true                      # Create ECS service
+    enable_load_balancer = false                     # No ALB needed for internal service
 
     # Domain Configuration (not needed for internal service)
-    domain_name     = null                       # No external domain
-    certificate_arn = null                       # No certificate needed
+    domain_name     = null                           # No external domain
+    certificate_arn = null                           # No certificate needed
 
     # Auto Scaling Configuration
-    enable_autoscaling       = false             # No auto scaling for worker
-    min_capacity            = 1                  # Not used when auto scaling disabled
-    max_capacity            = 1                  # Not used when auto scaling disabled
-    target_cpu_utilization  = 70                # Not used when auto scaling disabled
+    enable_autoscaling       = false                 # No auto scaling for worker
+    min_capacity            = 1                      # Not used when auto scaling disabled
+    max_capacity            = 1                      # Not used when auto scaling disabled
+    target_cpu_utilization  = 70                    # Not used when auto scaling disabled
+    target_memory_utilization = 80                  # Not used when auto scaling disabled
 
     # Health Check Configuration (not used without ALB)
-    health_check_path    = "/status"             # Internal status endpoint
-    health_check_matcher = "200"                 # Success response code
+    health_check_path    = "/status"                 # Internal status endpoint
+    health_check_matcher = "200"                     # Success response code
 
     # Logging Configuration
-    log_retention_days = 7                       # Log retention period
+    log_retention_days = 7                           # Log retention period
 
     # Environment Variables
     environment_variables = {
       WORKER_TYPE = "background"
       LOG_LEVEL   = "INFO"
+      QUEUE_NAME  = "default"
+      BATCH_SIZE  = "10"
     }
 
     # Custom Security Group Rules for internal access
@@ -203,12 +260,24 @@ services = {
         from_port   = 8080
         to_port     = 8080
         protocol    = "tcp"
-        cidr_blocks = ["10.0.0.0/16"]           # VPC internal access only
+        cidr_blocks = ["10.0.0.0/16"]               # VPC internal access only
       }
     }
 
-    # Secrets (empty for example)
+    # Secrets
     secrets = {}
+
+    # Deployment Configuration
+    deployment_minimum_healthy_percent = 0          # Allow zero for worker restart
+    deployment_maximum_percent        = 100
+    enable_execute_command           = true          # Enable for debugging
+
+    # Network Configuration
+    assign_public_ip = false
+
+    # Service Discovery
+    enable_service_discovery = false
+    service_discovery_namespace_id = null
   }
 }
 
@@ -220,22 +289,22 @@ ecs_cluster = {
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 
   # Monitoring & Logging (cost considerations)
-  enable_container_insights           = false    # Container Insights (incurs cost)
-  log_retention_in_days              = 7        # Log retention period
-  create_service_discovery_namespace = false    # Service Discovery (enable if needed)
-  create_execution_role              = true     # Execution Role creation
+  enable_container_insights           = false      # Container Insights (incurs cost)
+  log_retention_in_days              = 7          # Log retention period
+  create_service_discovery_namespace = false      # Service Discovery (enable if needed)
+  create_execution_role              = true       # Execution Role creation
 
   # Capacity Provider Strategy (cost optimization)
   capacity_provider_strategy = [
     {
-      capacity_provider = "FARGATE_SPOT"    # Spot instances first (cheaper)
-      weight           = 3                  # Weight
-      base            = 0                   # Base count
+      capacity_provider = "FARGATE_SPOT"          # Spot instances first (cheaper)
+      weight           = 3                        # Weight
+      base            = 0                         # Base count
     },
     {
-      capacity_provider = "FARGATE"         # Regular Fargate (stability)
-      weight           = 1                  # Weight
-      base            = 1                   # Base count
+      capacity_provider = "FARGATE"               # Regular Fargate (stability)
+      weight           = 1                        # Weight
+      base            = 1                         # Base count
     }
   ]
 }
@@ -262,26 +331,62 @@ acm_config = {
 # 3. CLI argument: terraform apply -var="ROUTE53_PUB_ZONE_ID=Z1234567890ABC"
 
 # ====================================================================
-# Usage Examples
+# ECR Deployment Guide
 # ====================================================================
 #
-# Single service (nginx only):
-# Remove "api-service" and "worker-service" from the services map
+# Step 1: Initial Deployment (ECR Repository Creation)
+# 1. Set use_ecr_images = false (above)
+# 2. Run: terraform apply
+# 3. Note the ECR repository URLs from output
 #
-# Multiple web services:
-# Add more services with different domain names (e.g., nginx1.domain.com, nginx2.domain.com)
+# Step 2: Build and Push Custom Images
+# 1. Get login command: terraform output docker_login_command
+# 2. Login to ECR: aws ecr get-login-password | docker login...
+# 3. Build your custom Dockerfile:
+#    docker build -t your-service-name .
+# 4. Tag for ECR: docker tag your-service-name:latest ECR_URL:latest
+# 5. Push: docker push ECR_URL:latest
 #
-# Internal services only:
-# Set enable_load_balancer = false and domain_name = null
+# Step 3: Switch to ECR Images
+# 1. Set use_ecr_images = true (above)
+# 2. Run: terraform apply
+# 3. ECS services will now use your custom ECR images
 #
-# Cost optimization:
-# - Set desired_count = 1, max_capacity = 3
-# - Use FARGATE_SPOT with higher weight
+# Step 4: Verify Deployment
+# 1. Check service status: terraform output service_endpoints
+# 2. Test endpoints: curl https://your-service.your-domain.com
+# 3. Monitor logs: terraform output log_group_names
+
+# ====================================================================
+# Usage Examples for Different Scenarios
+# ====================================================================
+#
+# Single Web Service:
+# - Remove "api-service" and "worker-service" from services map
+# - Keep only "nginx-web" with your custom configuration
+#
+# Microservices Architecture:
+# - Keep all services and customize as needed
+# - Add more services following the same pattern
+# - Use service discovery for inter-service communication
+#
+# API-only Deployment:
+# - Remove "nginx-web" and "worker-service"
+# - Keep only "api-service"
+# - Consider adding database connectivity
+#
+# Cost Optimization for Development:
+# - Set desired_count = 1 for all services
+# - Set max_capacity = 3 or lower
+# - Use enable_nat_gateway = false
+# - Set log_retention_days = 3 or 7
 # - Disable container_insights
-# - Use shorter log_retention_days
 #
-# Production settings:
+# Production Ready Settings:
 # - Set desired_count = 2 or higher
 # - Enable container_insights = true
-# - Use longer log_retention_days (30-90)
-# - Set enable_nat_gateway = true for private subnets
+# - Use enable_nat_gateway = true
+# - Set longer log_retention_days (30-90)
+# - Add proper secrets management
+# - Configure custom security group rules
+# - Enable service discovery if needed
