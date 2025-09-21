@@ -354,3 +354,12 @@ variable "ROUTE53_PUB_ZONE_ID" {
     error_message = "Route53 zone ID must start with 'Z' followed by alphanumeric characters."
   }
 }
+
+# ====================================================================
+# Image Configuration
+# ====================================================================
+variable "use_ecr_images" {
+  description = "Whether to use ECR images instead of public Docker Hub images"
+  type        = bool
+  default     = false
+}

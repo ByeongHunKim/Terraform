@@ -78,3 +78,33 @@ output "database_subnet_group_name" {
   description = "Name of the RDS subnet group"
   value       = module.vpc.database_subnet_group_name
 }
+
+# ====================================================================
+# ECR Outputs
+# ====================================================================
+output "ecr_repository_urls" {
+  description = "ECR repository URLs for each service"
+  value       = module.ecr.repository_urls
+}
+
+output "ecr_repository_arns" {
+  description = "ECR repository ARNs for each service"
+  value       = module.ecr.repository_arns
+}
+
+output "ecr_image_uris" {
+  description = "Complete ECR image URIs with latest tag"
+  value       = module.ecr.image_uris_with_latest
+}
+
+output "docker_login_command" {
+  description = "Command to login to ECR"
+  value       = module.ecr.docker_login_command
+  sensitive   = true
+}
+
+output "docker_build_push_commands" {
+  description = "Docker commands to build and push images"
+  value       = module.ecr.docker_build_push_commands
+  sensitive   = true
+}
