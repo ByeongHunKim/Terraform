@@ -363,3 +363,40 @@ variable "use_ecr_images" {
   type        = bool
   default     = false
 }
+
+# ====================================================================
+# VPC Flow Logs Configuration
+# ====================================================================
+variable "vpc_flow_logs_config" {
+  description = "VPC Flow Logs configuration"
+  type = object({
+    # CloudWatch Log Group
+    log_group_name        = string
+    log_retention_in_days = number
+
+    # IAM Role
+    iam_role_name = string
+
+    # Flow Log Settings
+    traffic_type             = string
+    max_aggregation_interval = number
+    log_format              = optional(string)
+  })
+
+  validation {
+    condition     = contains(["ACCEPT", "REJECT", "ALL"], var.vpc_flow_logs_config.traffic_type)
+    error_message = "Traffic type must be one of: ACCEPT, REJECT, ALL."
+  }
+
+  validation {
+    condition = contains([
+      1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653
+    ], var.vpc_flow_logs_config.log_retention_in_days)
+    error_message = "Log retention period must be a valid CloudWatch Logs retention value."
+  }
+
+  validation {
+    condition     = contains([60, 600], var.vpc_flow_logs_config.max_aggregation_interval)
+    error_message = "Max aggregation interval must be either 60 or 600 seconds."
+  }
+}

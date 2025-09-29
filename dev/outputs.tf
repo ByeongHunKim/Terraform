@@ -108,3 +108,36 @@ output "docker_build_push_commands" {
   value       = module.ecr.docker_build_push_commands
   sensitive   = true
 }
+
+# ====================================================================
+# VPC Flow Logs Outputs
+# ====================================================================
+output "vpc_flow_log_id" {
+  description = "ID of the VPC Flow Log"
+  value       = module.vpc_flow_logs.flow_log_id
+}
+
+output "vpc_flow_log_arn" {
+  description = "ARN of the VPC Flow Log"
+  value       = module.vpc_flow_logs.flow_log_arn
+}
+
+output "vpc_flow_log_group_name" {
+  description = "CloudWatch log group name for VPC Flow Logs"
+  value       = module.vpc_flow_logs.log_group_name
+}
+
+output "vpc_flow_log_group_arn" {
+  description = "CloudWatch log group ARN for VPC Flow Logs"
+  value       = module.vpc_flow_logs.log_group_arn
+}
+
+output "vpc_flow_log_iam_role_arn" {
+  description = "IAM role ARN for VPC Flow Logs"
+  value       = module.vpc_flow_logs.iam_role_arn
+}
+
+output "vpc_flow_log_configuration" {
+  description = "VPC Flow Log configuration summary"
+  value       = module.vpc_flow_logs.flow_log_configuration
+}

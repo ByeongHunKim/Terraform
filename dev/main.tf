@@ -193,3 +193,33 @@ module "ecs_services" {
     Phase   = "2 - Task Definitions and Services"
   })
 }
+
+# ====================================================================
+# VPC Flow Logs Module
+# ====================================================================
+module "vpc_flow_logs" {
+  source = "../modules/vpc-flow-logs"
+
+  # VPC
+  vpc_id = module.vpc.vpc_id
+
+  # naming
+  name_prefix = local.name_prefix
+
+  # CloudWatch Log Group
+  log_group_name        = var.vpc_flow_logs_config.log_group_name
+  log_retention_in_days = var.vpc_flow_logs_config.log_retention_in_days
+
+  # IAM Role
+  iam_role_name = var.vpc_flow_logs_config.iam_role_name
+
+  # Flow Log configuration
+  traffic_type             = var.vpc_flow_logs_config.traffic_type
+  max_aggregation_interval = var.vpc_flow_logs_config.max_aggregation_interval
+  log_format              = var.vpc_flow_logs_config.log_format
+
+  tags = merge(local.common_tags, {
+    Module  = "vpc-flow-logs"
+    Purpose = "Network Traffic Monitoring"
+  })
+}
