@@ -47,6 +47,25 @@ database_cidrs = [                      # Database subnet CIDRs
 # ====================================================================
 enable_nat_gateway = false             # true: production, false: dev (cost savings)
 
+
+# ====================================================================
+# VPC Flow Logs Configuration
+# ====================================================================
+vpc_flow_logs_config = {
+  # CloudWatch Log Group
+  log_group_name        = ""           # default - /aws/vpc/flow-logs/your-project-dev
+  log_retention_in_days = 7            # dev: 7, prod: 30-90
+
+  # IAM Role
+  iam_role_name = ""                   # default - your-project-dev-vpc-flow-logs-role
+
+  # Flow Log
+  traffic_type             = "ALL"     # ACCEPT, REJECT, ALL
+  max_aggregation_interval = 600       # 60 or 600 seconds
+  log_format              = null       # null = basic format
+}
+
+
 # ====================================================================
 # ECR Configuration
 # ====================================================================
