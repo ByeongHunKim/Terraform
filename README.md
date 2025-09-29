@@ -40,7 +40,11 @@ terraform-aws-infrastructure/
 │   ├── ecs-service/            # ECS Services
 │   │   ├── main.tf              
 │   │   ├── variables.tf        
-│   │   └── outputs.tf                   
+│   │   └── outputs.tf
+│   ├── vpc-flow-logs/          # VPC Flow Logs
+│   │   ├── main.tf              
+│   │   ├── variables.tf        
+│   │   └── outputs.tf              
 │   └── ec2/                    # EC2 instances (planned)
 ├── .gitignore                  
 └── README.md                   
